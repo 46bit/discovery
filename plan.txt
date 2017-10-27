@@ -1,0 +1,9 @@
+Generator                                         port 4601
+    |              a new program
+ Program                                          port 4610
+    |              values separated by sleeps
+ Receiver                                         port 4611
+    |              received/second metric
+  Scorer                                          port 4612
+    |              score
+Generator                                         port 4601
