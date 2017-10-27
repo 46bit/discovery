@@ -45,9 +45,9 @@ func redisExample(containerName, containerPath string) error {
 	// create a container
 	container, err := client.NewContainer(
 		ctx,
-		"redis-server",
+		containerName,
 		containerd.WithImage(image),
-		containerd.WithNewSnapshot("redis-server-snapshot", image),
+		containerd.WithNewSnapshot(containerName+"-snapshot", image),
 		containerd.WithNewSpec(containerd.WithImageConfig(image)),
 	)
 	if err != nil {
@@ -88,7 +88,7 @@ func redisExample(containerName, containerPath string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("redis-server exited with status: %d\n", code)
+	fmt.Printf(containerName+" exited with status: %d\n", code)
 
 	return nil
 }
