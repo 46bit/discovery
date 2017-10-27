@@ -13,13 +13,14 @@ import (
 )
 
 func main() {
-	containerPath := os.Args[1]
-	if err := redisExample(containerPath); err != nil {
+	containerName := os.Args[1]
+	containerPath := os.Args[2]
+	if err := redisExample(containerName, containerPath); err != nil {
 		log.Fatal(err)
 	}
 }
 
-func redisExample(containerPath string) error {
+func redisExample(containerName, containerPath string) error {
 	// create a new client connected to the default socket path for containerd
 	client, err := containerd.New("/run/containerd/containerd.sock")
 	if err != nil {
@@ -31,7 +32,12 @@ func redisExample(containerPath string) error {
 	ctx := namespaces.WithNamespace(context.Background(), "example")
 
 	// pull the redis image from DockerHub
-	image, err := client.Pull(ctx, containerPath, containerd.WithPullUnpack)
+	reader, err := os.Open(containerPath)
+	if err != nil {
+		return err
+	}
+
+	image, err := client.Import(ctx, containerName, reader)
 	if err != nil {
 		return err
 	}
