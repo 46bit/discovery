@@ -11,6 +11,10 @@ bin/executor:
 hello-world:
 	$(MAKE) -C hello-world
 
+.PHONY: long-running
+long-running:
+	$(MAKE) -C long-running
+
 .PHONY: clean
 clean:
 	rm -rf bin
