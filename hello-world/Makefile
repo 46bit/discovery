@@ -1,11 +1,25 @@
-build:
-	mkdir build
-	CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o build/main .
-	docker build -t hello-world -f Dockerfile.scratch .
-	docker image save hello-world > build/hello-world.oci
+.PHONY: all
+all: go-build docker-build docker-push
 
-#run: build
-#	docker run -it ./build/hello-world.oci
+.PHONY: go-build
+go-build:
+	mkdir -p build
+	CGO_ENABLED=0 GOOS=linux go build \
+	  -a -installsuffix cgo \
+	  -o build/hello-world \
+	  .
 
+.PHONY: docker-build
+docker-build:
+	cp ../assets/ca-certificates.crt build/ca-certificates.crt
+	docker build -t hello-world -f Dockerfile .
+
+.PHONY: docker-push
+docker-push:
+	docker tag hello-world 46bit/hello-world
+	docker push 46bit/hello-world
+
+.PHONY: clean
 clean:
 	rm -rf build
+	docker rmi 46bit/hello-world
