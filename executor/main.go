@@ -70,7 +70,7 @@ func redisExample(containerName, imageReference string) error {
   }
 
   // sleep for a lil bit to see the logs
-  time.Sleep(3 * time.Second)
+  time.Sleep(300 * time.Second)
 
   // kill the process and get the exit status
   if err := task.Kill(ctx, syscall.SIGTERM); err != nil {
