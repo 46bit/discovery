@@ -1,5 +1,5 @@
 .PHONY: all
-all: bin/executor hello-world
+all: bin/executor hello-world long-running
 
 bin/executor:
 	mkdir -p bin
