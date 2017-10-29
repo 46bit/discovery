@@ -19,3 +19,4 @@ long-running:
 clean:
 	rm -rf bin
 	$(MAKE) clean -C hello-world
+	$(MAKE) clean -C long-running
