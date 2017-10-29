@@ -10,6 +10,8 @@ import (
 
   "github.com/containerd/containerd"
   "github.com/containerd/containerd/namespaces"
+  "github.com/containerd/containerd/containers"
+  specs "github.com/opencontainers/runtime-spec/specs-go"
 )
 
 func main() {
@@ -19,6 +21,15 @@ func main() {
   if err := redisExample(containerName, imageReference); err != nil {
     log.Fatal(err)
   }
+}
+
+// adapted from WithHtop https://github.com/containerd/containerd/blob/a6ce1ef2a140d79856a8647e1d1ae5ac9ab581eb/docs/client-opts.md
+func withHostNetworkNamespace(context context.Context, client *containerd.Client, container *containers.Container, s *specs.Spec) error {
+  // make sure we are in the host network namespace
+  if err := containerd.WithHostNamespace(specs.NetworkNamespace)(context, client, container, s); err != nil {
+    return err
+  }
+  return nil
 }
 
 func redisExample(containerName, imageReference string) error {
@@ -44,7 +55,7 @@ func redisExample(containerName, imageReference string) error {
     containerName,
     containerd.WithImage(image),
     containerd.WithNewSnapshot(containerName+"-snapshot", image),
-    containerd.WithNewSpec(containerd.WithImageConfig(image)),
+    containerd.WithNewSpec(containerd.WithImageConfig(image), withHostNetworkNamespace),
   )
   if err != nil {
     return err
