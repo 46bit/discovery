@@ -2,15 +2,11 @@ package main
 
 import (
 	"encoding/json"
+	"github.com/46bit/discovery"
 	"github.com/davecgh/go-spew/spew"
 	"log"
 	"net/http"
 )
-
-type Message struct {
-	number uint64
-	text   string
-}
 
 func main() {
 	log.Println("Started...")
@@ -22,14 +18,15 @@ func main() {
 			return
 		}
 
-		var m Message
+		var m discovery.Message
 		err := json.NewDecoder(r.Body).Decode(&m)
 		if err != nil {
-			http.Error(w, err.Error(), 400)
-			log.Println("Request body was not valid JSON.")
+			http.Error(w, `{"error": "Request body was not valid JSON."}`, 400)
+			log.Println("Request body was not valid JSON: %s.\n", err)
 			return
 		}
 
+		http.Error(w, `{"success": "true"}`, 200)
 		log.Println("Request was valid: %s", spew.Sdump(m))
 	})
 

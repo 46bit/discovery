@@ -1,5 +1,5 @@
 .PHONY: all
-all: bin/executor hello-world long-running
+all: bin/executor hello-world long-running receiver sender
 
 bin/executor:
 	mkdir -p bin
@@ -15,8 +15,18 @@ hello-world:
 long-running:
 	$(MAKE) -C long-running
 
+.PHONY: receiver
+receiver:
+	$(MAKE) -C receiver
+
+.PHONY: sender
+sender:
+	$(MAKE) -C sender
+
 .PHONY: clean
 clean:
 	rm -rf bin
-	$(MAKE) clean -C hello-world
-	$(MAKE) clean -C long-running
+	$(MAKE) clean -C hello-world || true
+	$(MAKE) clean -C long-running || true
+	$(MAKE) clean -C receiver || true
+	$(MAKE) clean -C sender || true
