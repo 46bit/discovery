@@ -54,7 +54,6 @@ func redisExample(containerName, imageReference string) error {
     ctx,
     containerName,
     containerd.WithImage(image),
-    containerd.WithNewSnapshot(containerName+"-snapshot", image),
     containerd.WithNewSpec(containerd.WithImageConfig(image), withHostNetworkNamespace),
   )
   if err != nil {

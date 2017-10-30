@@ -1,3 +1,5 @@
+NAME=$(shell basename $(CURDIR))
+
 .PHONY: all
 all: go-build docker-build docker-push
 
@@ -6,20 +8,23 @@ go-build:
 	mkdir -p build
 	CGO_ENABLED=0 GOOS=linux go build \
 	  -a -installsuffix cgo \
-	  -o build/long-running \
+	  -o "build/main" \
 	  .
 
 .PHONY: docker-build
 docker-build:
 	cp ../assets/ca-certificates.crt build/ca-certificates.crt
-	docker build -t long-running -f Dockerfile .
+	docker build \
+		-t "${NAME}" \
+		-f Dockerfile \
+		.
 
 .PHONY: docker-push
 docker-push:
-	docker tag long-running 46bit/long-running
-	docker push 46bit/long-running
+	docker tag "${NAME}" "46bit/${NAME}"
+	docker push "46bit/${NAME}"
 
 .PHONY: clean
 clean:
 	rm -rf build
-	docker rmi 46bit/long-running
+	docker rmi "46bit/${NAME}"

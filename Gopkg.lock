@@ -38,6 +38,12 @@
   revision = "f6943554a7e7e88b3c14aad190bf05932da84788"
 
 [[projects]]
+  name = "github.com/davecgh/go-spew"
+  packages = ["spew"]
+  revision = "346938d642f2ec3594ed81d874461961cd0faa76"
+  version = "v1.1.0"
+
+[[projects]]
   branch = "master"
   name = "github.com/docker/go-events"
   packages = ["."]
@@ -136,6 +142,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "2466fbe81e1aa06ab507febdede4476dd3a3d16537624de546f7481f796f383b"
+  inputs-digest = "0153451434f3a93e6f3538658a12e044d84f4c74232906fad82eabfd58be3f72"
   solver-name = "gps-cdcl"
   solver-version = 1
