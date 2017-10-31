@@ -12,7 +12,7 @@ import (
 func main() {
 	log.Println("Started...")
 
-	url := "http://localhost:4700/"
+	url := "http://[::1]:4700/"
 	log.Printf("Sending to %s\n", url)
 
 	var i uint64
