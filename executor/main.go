@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"syscall"
 	"time"
 
 	"github.com/containerd/containerd"
@@ -15,6 +14,15 @@ import (
 )
 
 func main() {
+	// command := os.Args[1]
+
+	// switch command {
+	// case "run":
+	// 	containerName := os.Args[2]
+	// 	imageReference := "docker.io/46bit/" + containerName + ":latest"
+
+	// }
+
 	fmt.Println("running")
 	containerName := os.Args[1]
 	imageReference := os.Args[2]
@@ -33,20 +41,18 @@ func withHostNetworkNamespace(context context.Context, client *containerd.Client
 }
 
 func redisExample(containerName, imageReference string) error {
-	// create a new client connected to the default socket path for containerd
 	client, err := containerd.New("/run/containerd/containerd.sock")
 	if err != nil {
 		return err
 	}
 	defer client.Close()
 
-	// create a new context with an "example" namespace
 	ctx := namespaces.WithNamespace(context.Background(), "default")
 
 	// pull the redis image from DockerHub
 	image, err := client.Pull(ctx, imageReference, containerd.WithPullUnpack)
 	if err != nil {
-		return err
+		return fmt.Errorf("Error pulling image: %s", err.Error())
 	}
 
 	// create a container
@@ -58,44 +64,27 @@ func redisExample(containerName, imageReference string) error {
 		containerd.WithNewSpec(containerd.WithImageConfig(image), withHostNetworkNamespace),
 	)
 	if err != nil {
-		return err
+		return fmt.Errorf("Error creating new container: %s", err.Error())
 	}
-	defer container.Delete(ctx, containerd.WithSnapshotCleanup)
 
 	// create a task from the container
 	task, err := container.NewTask(ctx, containerd.Stdio)
 	if err != nil {
-		return err
+		return fmt.Errorf("Error creating new task: %s", err.Error())
 	}
-	defer task.Delete(ctx)
 
 	// make sure we wait before calling start
-	exitStatusC, err := task.Wait(ctx)
+	_, err = task.Wait(ctx)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Printf("Ignored error when waiting for task: %s\n", err)
 	}
 
 	// call start on the task to execute the redis server
 	if err := task.Start(ctx); err != nil {
-		return err
+		return fmt.Errorf("Error starting task: %s", err.Error())
 	}
 
-	// sleep for a lil bit to see the logs
-	time.Sleep(300 * time.Second)
-
-	// kill the process and get the exit status
-	if err := task.Kill(ctx, syscall.SIGTERM); err != nil {
-		return err
-	}
-
-	// wait for the process to fully exit and print out the exit status
-
-	status := <-exitStatusC
-	code, _, err := status.Result()
-	if err != nil {
-		return err
-	}
-	fmt.Printf(containerName+" exited with status: %d\n", code)
+	time.Sleep(10 * time.Second)
 
 	return nil
 }
