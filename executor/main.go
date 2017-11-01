@@ -15,6 +15,8 @@ import (
 )
 
 func main() {
+	rand.Seed(time.Now().UnixNano())
+
 	// command := os.Args[1]
 
 	// switch command {
