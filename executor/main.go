@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"math/rand"
 	"os"
 	"time"
 
@@ -56,11 +57,12 @@ func redisExample(containerName, imageReference string) error {
 	}
 
 	// create a container
+	snapshotViewName := fmt.Sprintf("%s-snapshotView-%d", containerName, rand.Uint64())
 	container, err := client.NewContainer(
 		ctx,
 		containerName,
 		containerd.WithImage(image),
-		containerd.WithNewSnapshot(containerName+"-snapshot", image),
+		containerd.WithNewSnapshotView(snapshotViewName, image),
 		containerd.WithNewSpec(containerd.WithImageConfig(image), withHostNetworkNamespace),
 	)
 	if err != nil {
