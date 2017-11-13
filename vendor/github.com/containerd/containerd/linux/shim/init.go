@@ -98,12 +98,16 @@ func (s *Service) newInitProcess(context context.Context, r *shimapi.CreateTaskR
 			return nil, errors.Wrapf(err, "failed to mount rootfs component %v", m)
 		}
 	}
+	root := s.config.RuntimeRoot
+	if root == "" {
+		root = RuncRoot
+	}
 	runtime := &runc.Runc{
 		Command:       r.Runtime,
 		Log:           filepath.Join(s.config.Path, "log.json"),
 		LogFormat:     runc.JSON,
 		PdeathSignal:  syscall.SIGKILL,
-		Root:          filepath.Join(s.config.RuntimeRoot, s.config.Namespace),
+		Root:          filepath.Join(root, s.config.Namespace),
 		Criu:          s.config.Criu,
 		SystemdCgroup: s.config.SystemdCgroup,
 	}
@@ -343,7 +347,7 @@ func (p *initProcess) checkpoint(context context.Context, r *shimapi.CheckpointT
 	work := filepath.Join(p.workDir, "criu-work")
 	defer os.RemoveAll(work)
 	if err := p.runtime.Checkpoint(context, p.id, &runc.CheckpointOpts{
-		WorkDir:                  p.workDir,
+		WorkDir:                  work,
 		ImagePath:                r.Path,
 		AllowOpenTCP:             options.OpenTcp,
 		AllowExternalUnixSockets: options.ExternalUnixSockets,

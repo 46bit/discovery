@@ -2,12 +2,10 @@ package containerd
 
 import (
 	"context"
-	"time"
 
 	"github.com/containerd/containerd/containers"
 	"github.com/containerd/containerd/errdefs"
 	"github.com/containerd/containerd/platforms"
-	"github.com/containerd/containerd/snapshot"
 	"github.com/containerd/typeurl"
 	"github.com/gogo/protobuf/types"
 	"github.com/opencontainers/image-spec/identity"
@@ -93,11 +91,8 @@ func WithNewSnapshot(id string, i Image) NewContainerOpts {
 			return err
 		}
 		setSnapshotterIfEmpty(c)
-		labels := map[string]string{
-			"containerd.io/gc.root": time.Now().String(),
-		}
 		parent := identity.ChainID(diffIDs).String()
-		if _, err := client.SnapshotService(c.Snapshotter).Prepare(ctx, id, parent, snapshot.WithLabels(labels)); err != nil {
+		if _, err := client.SnapshotService(c.Snapshotter).Prepare(ctx, id, parent); err != nil {
 			return err
 		}
 		c.SnapshotKey = id
@@ -126,11 +121,8 @@ func WithNewSnapshotView(id string, i Image) NewContainerOpts {
 			return err
 		}
 		setSnapshotterIfEmpty(c)
-		labels := map[string]string{
-			"containerd.io/gc.root": time.Now().String(),
-		}
 		parent := identity.ChainID(diffIDs).String()
-		if _, err := client.SnapshotService(c.Snapshotter).View(ctx, id, parent, snapshot.WithLabels(labels)); err != nil {
+		if _, err := client.SnapshotService(c.Snapshotter).View(ctx, id, parent); err != nil {
 			return err
 		}
 		c.SnapshotKey = id
@@ -150,18 +142,21 @@ func setSnapshotterIfEmpty(c *containers.Container) {
 // integration.
 //
 // Make sure to register the type of `extension` in the typeurl package via
-// `typeurl.Register` otherwise the type data will be inferred, including how
-// to encode and decode the object.
+// `typeurl.Register` or container creation may fail.
 func WithContainerExtension(name string, extension interface{}) NewContainerOpts {
 	return func(ctx context.Context, client *Client, c *containers.Container) error {
-		any, err := typeurl.MarshalAny(extension)
-		if err != nil {
-			return err
-		}
-
 		if name == "" {
 			return errors.Wrapf(errdefs.ErrInvalidArgument, "extension key must not be zero-length")
 		}
+
+		any, err := typeurl.MarshalAny(extension)
+		if err != nil {
+			if errors.Cause(err) == typeurl.ErrNotFound {
+				return errors.Wrapf(err, "extension %q is not registered with the typeurl package, see `typeurl.Register`", name)
+			}
+			return errors.Wrap(err, "error marshalling extension")
+		}
+
 		if c.Extensions == nil {
 			c.Extensions = make(map[string]types.Any)
 		}

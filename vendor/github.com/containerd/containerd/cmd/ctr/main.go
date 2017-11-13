@@ -6,8 +6,19 @@ import (
 	"log"
 	"os"
 
+	"github.com/containerd/containerd/cmd/ctr/commands/containers"
+	"github.com/containerd/containerd/cmd/ctr/commands/content"
+	"github.com/containerd/containerd/cmd/ctr/commands/events"
+	"github.com/containerd/containerd/cmd/ctr/commands/images"
+	namespacesCmd "github.com/containerd/containerd/cmd/ctr/commands/namespaces"
+	"github.com/containerd/containerd/cmd/ctr/commands/plugins"
+	"github.com/containerd/containerd/cmd/ctr/commands/pprof"
+	"github.com/containerd/containerd/cmd/ctr/commands/run"
+	"github.com/containerd/containerd/cmd/ctr/commands/snapshot"
+	"github.com/containerd/containerd/cmd/ctr/commands/tasks"
+	versionCmd "github.com/containerd/containerd/cmd/ctr/commands/version"
+	"github.com/containerd/containerd/defaults"
 	"github.com/containerd/containerd/namespaces"
-	"github.com/containerd/containerd/server"
 	"github.com/containerd/containerd/version"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
@@ -46,7 +57,7 @@ containerd CLI
 		cli.StringFlag{
 			Name:  "address, a",
 			Usage: "address for containerd's GRPC server",
-			Value: server.DefaultAddress,
+			Value: defaults.DefaultAddress,
 		},
 		cli.DurationFlag{
 			Name:  "timeout",
@@ -64,24 +75,17 @@ containerd CLI
 		},
 	}
 	app.Commands = append([]cli.Command{
-		applyCommand,
-		containersCommand,
-		contentCommand,
-		eventsCommand,
-		fetchCommand,
-		fetchObjectCommand,
-		imageCommand,
-		namespacesCommand,
-		pprofCommand,
-		pullCommand,
-		pushCommand,
-		pushObjectCommand,
-		rootfsCommand,
-		runCommand,
-		snapshotCommand,
-		tasksCommand,
-		pluginsCommand,
-		versionCommand,
+		plugins.Command,
+		versionCmd.Command,
+		containers.Command,
+		content.Command,
+		events.Command,
+		images.Command,
+		namespacesCmd.Command,
+		pprof.Command,
+		run.Command,
+		snapshot.Command,
+		tasks.Command,
 	}, extraCmds...)
 	app.Before = func(context *cli.Context) error {
 		if context.GlobalBool("debug") {

@@ -37,8 +37,8 @@ const (
 // datastores for content and snapshots.
 type DB struct {
 	db *bolt.DB
-	ss map[string]snapshot.Snapshotter
-	cs content.Store
+	ss map[string]*snapshotter
+	cs *contentStore
 
 	// wlock is used to protect access to the data structures during garbage
 	// collection. While the wlock is held no writable transactions can be
@@ -60,12 +60,19 @@ type DB struct {
 // NewDB creates a new metadata database using the provided
 // bolt database, content store, and snapshotters.
 func NewDB(db *bolt.DB, cs content.Store, ss map[string]snapshot.Snapshotter) *DB {
-	return &DB{
+	m := &DB{
 		db:      db,
-		ss:      ss,
-		cs:      cs,
+		ss:      make(map[string]*snapshotter, len(ss)),
 		dirtySS: map[string]struct{}{},
 	}
+
+	// Initialize data stores
+	m.cs = newContentStore(m, cs)
+	for name, sn := range ss {
+		m.ss[name] = newSnapshotter(m, name, sn)
+	}
+
+	return m
 }
 
 // Init ensures the database is at the correct version
@@ -158,7 +165,7 @@ func (m *DB) ContentStore() content.Store {
 	if m.cs == nil {
 		return nil
 	}
-	return newContentStore(m, m.cs)
+	return m.cs
 }
 
 // Snapshotter returns a namespaced content store for
@@ -168,7 +175,7 @@ func (m *DB) Snapshotter(name string) snapshot.Snapshotter {
 	if !ok {
 		return nil
 	}
-	return newSnapshotter(m, name, sn)
+	return sn
 }
 
 // View runs a readonly transaction on the metadata store.
@@ -183,6 +190,7 @@ func (m *DB) Update(fn func(*bolt.Tx) error) error {
 	return m.db.Update(fn)
 }
 
+// GarbageCollect starts garbage collection
 func (m *DB) GarbageCollect(ctx context.Context) error {
 	lt1 := time.Now()
 	m.wlock.Lock()
@@ -191,39 +199,8 @@ func (m *DB) GarbageCollect(ctx context.Context) error {
 		log.G(ctx).WithField("d", time.Now().Sub(lt1)).Debug("metadata garbage collected")
 	}()
 
-	var marked map[gc.Node]struct{}
-
-	if err := m.db.View(func(tx *bolt.Tx) error {
-		ctx, cancel := context.WithCancel(ctx)
-		defer cancel()
-
-		roots := make(chan gc.Node)
-		errChan := make(chan error)
-		go func() {
-			defer close(errChan)
-			defer close(roots)
-
-			// Call roots
-			if err := scanRoots(ctx, tx, roots); err != nil {
-				cancel()
-				errChan <- err
-			}
-		}()
-
-		refs := func(ctx context.Context, n gc.Node, fn func(gc.Node)) error {
-			return references(ctx, tx, n, fn)
-		}
-
-		reachable, err := gc.ConcurrentMark(ctx, roots, refs)
-		if rerr := <-errChan; rerr != nil {
-			return rerr
-		}
-		if err != nil {
-			return err
-		}
-		marked = reachable
-		return nil
-	}); err != nil {
+	marked, err := m.getMarked(ctx)
+	if err != nil {
 		return err
 	}
 
@@ -234,15 +211,11 @@ func (m *DB) GarbageCollect(ctx context.Context) error {
 		ctx, cancel := context.WithCancel(ctx)
 		defer cancel()
 
-		nodeC := make(chan gc.Node)
-		var scanErr error
+		rm := func(ctx context.Context, n gc.Node) error {
+			if _, ok := marked[n]; ok {
+				return nil
+			}
 
-		go func() {
-			defer close(nodeC)
-			scanErr = scanAll(ctx, tx, nodeC)
-		}()
-
-		rm := func(n gc.Node) error {
 			if n.Type == ResourceSnapshot {
 				if idx := strings.IndexRune(n.Key, '/'); idx > 0 {
 					m.dirtySS[n.Key[:idx]] = struct{}{}
@@ -253,12 +226,8 @@ func (m *DB) GarbageCollect(ctx context.Context) error {
 			return remove(ctx, tx, n)
 		}
 
-		if err := gc.Sweep(marked, nodeC, rm); err != nil {
-			return errors.Wrap(err, "failed to sweep")
-		}
-
-		if scanErr != nil {
-			return errors.Wrap(scanErr, "failed to scan all")
+		if err := scanAll(ctx, tx, rm); err != nil {
+			return errors.Wrap(err, "failed to scan and remove")
 		}
 
 		return nil
@@ -285,6 +254,54 @@ func (m *DB) GarbageCollect(ctx context.Context) error {
 	return nil
 }
 
+func (m *DB) getMarked(ctx context.Context) (map[gc.Node]struct{}, error) {
+	var marked map[gc.Node]struct{}
+	if err := m.db.View(func(tx *bolt.Tx) error {
+		ctx, cancel := context.WithCancel(ctx)
+		defer cancel()
+
+		var (
+			nodes []gc.Node
+			wg    sync.WaitGroup
+			roots = make(chan gc.Node)
+		)
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for n := range roots {
+				nodes = append(nodes, n)
+			}
+		}()
+		// Call roots
+		if err := scanRoots(ctx, tx, roots); err != nil {
+			cancel()
+			return err
+		}
+		close(roots)
+		wg.Wait()
+
+		refs := func(n gc.Node) ([]gc.Node, error) {
+			var sn []gc.Node
+			if err := references(ctx, tx, n, func(nn gc.Node) {
+				sn = append(sn, nn)
+			}); err != nil {
+				return nil, err
+			}
+			return sn, nil
+		}
+
+		reachable, err := gc.Tricolor(nodes, refs)
+		if err != nil {
+			return err
+		}
+		marked = reachable
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+	return marked, nil
+}
+
 func (m *DB) cleanupSnapshotter(name string) {
 	ctx := context.Background()
 	sn, ok := m.ss[name]
@@ -292,7 +309,7 @@ func (m *DB) cleanupSnapshotter(name string) {
 		return
 	}
 
-	err := newSnapshotter(m, name, sn).garbageCollect(ctx)
+	err := sn.garbageCollect(ctx)
 	if err != nil {
 		log.G(ctx).WithError(err).WithField("snapshotter", name).Warn("garbage collection failed")
 	}
@@ -304,7 +321,7 @@ func (m *DB) cleanupContent() {
 		return
 	}
 
-	err := newContentStore(m, m.cs).garbageCollect(ctx)
+	err := m.cs.garbageCollect(ctx)
 	if err != nil {
 		log.G(ctx).WithError(err).Warn("content garbage collection failed")
 	}

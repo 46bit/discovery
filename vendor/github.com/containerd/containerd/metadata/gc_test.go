@@ -34,14 +34,22 @@ func TestGCRoots(t *testing.T) {
 		addSnapshot("ns1", "overlay", "sn1", "", nil),
 		addSnapshot("ns1", "overlay", "sn2", "", nil),
 		addSnapshot("ns1", "overlay", "sn3", "", labelmap(string(labelGCRoot), "always")),
+		addLeaseSnapshot("ns2", "l1", "overlay", "sn5"),
+		addLeaseSnapshot("ns2", "l2", "overlay", "sn6"),
+		addLeaseContent("ns2", "l1", dgst(4)),
+		addLeaseContent("ns2", "l2", dgst(5)),
 	}
 
 	expected := []gc.Node{
 		gcnode(ResourceContent, "ns1", dgst(1).String()),
 		gcnode(ResourceContent, "ns1", dgst(2).String()),
 		gcnode(ResourceContent, "ns2", dgst(2).String()),
+		gcnode(ResourceContent, "ns2", dgst(4).String()),
+		gcnode(ResourceContent, "ns2", dgst(5).String()),
 		gcnode(ResourceSnapshot, "ns1", "overlay/sn2"),
 		gcnode(ResourceSnapshot, "ns1", "overlay/sn3"),
+		gcnode(ResourceSnapshot, "ns2", "overlay/sn5"),
+		gcnode(ResourceSnapshot, "ns2", "overlay/sn6"),
 	}
 
 	if err := db.Update(func(tx *bolt.Tx) error {
@@ -61,7 +69,7 @@ func TestGCRoots(t *testing.T) {
 
 	ctx := context.Background()
 
-	checkNodes(ctx, t, db, expected, func(ctx context.Context, tx *bolt.Tx, nc chan<- gc.Node) error {
+	checkNodeC(ctx, t, db, expected, func(ctx context.Context, tx *bolt.Tx, nc chan<- gc.Node) error {
 		return scanRoots(ctx, tx, nc)
 	})
 }
@@ -125,8 +133,8 @@ func TestGCRemove(t *testing.T) {
 
 	ctx := context.Background()
 
-	checkNodes(ctx, t, db, all, func(ctx context.Context, tx *bolt.Tx, nc chan<- gc.Node) error {
-		return scanAll(ctx, tx, nc)
+	checkNodes(ctx, t, db, all, func(ctx context.Context, tx *bolt.Tx, fn func(context.Context, gc.Node) error) error {
+		return scanAll(ctx, tx, fn)
 	})
 	if t.Failed() {
 		t.Fatal("Scan all failed")
@@ -143,8 +151,8 @@ func TestGCRemove(t *testing.T) {
 		t.Fatalf("Update failed: %+v", err)
 	}
 
-	checkNodes(ctx, t, db, remaining, func(ctx context.Context, tx *bolt.Tx, nc chan<- gc.Node) error {
-		return scanAll(ctx, tx, nc)
+	checkNodes(ctx, t, db, remaining, func(ctx context.Context, tx *bolt.Tx, fn func(context.Context, gc.Node) error) error {
+		return scanAll(ctx, tx, fn)
 	})
 }
 
@@ -223,7 +231,7 @@ func TestGCRefs(t *testing.T) {
 	ctx := context.Background()
 
 	for n, nodes := range refs {
-		checkNodes(ctx, t, db, nodes, func(ctx context.Context, tx *bolt.Tx, nc chan<- gc.Node) error {
+		checkNodeC(ctx, t, db, nodes, func(ctx context.Context, tx *bolt.Tx, nc chan<- gc.Node) error {
 			return references(ctx, tx, n, func(n gc.Node) {
 				select {
 				case nc <- n:
@@ -255,7 +263,7 @@ func newDatabase() (*bolt.DB, func(), error) {
 	}, nil
 }
 
-func checkNodes(ctx context.Context, t *testing.T, db *bolt.DB, expected []gc.Node, fn func(context.Context, *bolt.Tx, chan<- gc.Node) error) {
+func checkNodeC(ctx context.Context, t *testing.T, db *bolt.DB, expected []gc.Node, fn func(context.Context, *bolt.Tx, chan<- gc.Node) error) {
 	var actual []gc.Node
 	nc := make(chan gc.Node)
 	done := make(chan struct{})
@@ -273,6 +281,22 @@ func checkNodes(ctx context.Context, t *testing.T, db *bolt.DB, expected []gc.No
 	}
 
 	<-done
+	checkNodesEqual(t, actual, expected)
+}
+
+func checkNodes(ctx context.Context, t *testing.T, db *bolt.DB, expected []gc.Node, fn func(context.Context, *bolt.Tx, func(context.Context, gc.Node) error) error) {
+	var actual []gc.Node
+	scanFn := func(ctx context.Context, n gc.Node) error {
+		actual = append(actual, n)
+		return nil
+	}
+
+	if err := db.View(func(tx *bolt.Tx) error {
+		return fn(ctx, tx, scanFn)
+	}); err != nil {
+		t.Fatal(err)
+	}
+
 	checkNodesEqual(t, actual, expected)
 }
 
@@ -355,6 +379,26 @@ func addContent(ns string, dgst digest.Digest, labels map[string]string) alterFu
 			return err
 		}
 		return boltutil.WriteLabels(cbkt, labels)
+	}
+}
+
+func addLeaseSnapshot(ns, lid, snapshotter, name string) alterFunc {
+	return func(bkt *bolt.Bucket) error {
+		sbkt, err := createBuckets(bkt, ns, string(bucketKeyObjectLeases), lid, string(bucketKeyObjectSnapshots), snapshotter)
+		if err != nil {
+			return err
+		}
+		return sbkt.Put([]byte(name), nil)
+	}
+}
+
+func addLeaseContent(ns, lid string, dgst digest.Digest) alterFunc {
+	return func(bkt *bolt.Bucket) error {
+		cbkt, err := createBuckets(bkt, ns, string(bucketKeyObjectLeases), lid, string(bucketKeyObjectContent))
+		if err != nil {
+			return err
+		}
+		return cbkt.Put([]byte(dgst.String()), nil)
 	}
 }
 
