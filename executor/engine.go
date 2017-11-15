@@ -101,12 +101,16 @@ func (e *Executor) run() {
 
 			container, err := e.Client.LoadContainer(e.Ctx, taskExitCode.TaskGUID)
 			if err != nil {
-				log.Fatalln(fmt.Errorf("Error loading container %s (%s): %s", taskExitCode.TaskGUID, taskExitCode.TaskRemote, err))
+				log.Println(fmt.Errorf("Error loading container %s (%s): %s", taskExitCode.TaskGUID, taskExitCode.TaskRemote, err))
 			}
 
-			err = container.Delete(e.Ctx, containerd.WithSnapshotCleanup)
-			if err != nil {
-				log.Fatalln(fmt.Errorf("Error deleting container %s (%s): %s", taskExitCode.TaskGUID, taskExitCode.TaskRemote, err))
+			for {
+				err = container.Delete(e.Ctx, containerd.WithSnapshotCleanup)
+				if err != nil {
+					log.Println(fmt.Errorf("Error deleting container %s (%s): %s", taskExitCode.TaskGUID, taskExitCode.TaskRemote, err))
+					continue
+				}
+				break
 			}
 
 			if _, ok := e.Groups[taskExitCode.GroupName]; ok {
