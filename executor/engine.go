@@ -96,17 +96,17 @@ func (e *Executor) run() {
 
 			err := e.Tasks[taskExitCode.TaskRemote].Kill(e.Ctx, syscall.SIGKILL, containerd.WithKillAll)
 			if err != nil && !errdefs.IsFailedPrecondition(err) && !errdefs.IsNotFound(err) {
-				log.Fatalln(err)
+				log.Fatalln(fmt.Errorf("Error killing task (%s, %s): %s", taskExitCode.TaskGUID, taskExitCode.TaskRemote, err))
 			}
 
 			container, err := e.Client.LoadContainer(e.Ctx, taskExitCode.TaskGUID)
 			if err != nil {
-				log.Fatalln(err)
+				log.Fatalln(fmt.Errorf("Error loading container %s (%s): %s", taskExitCode.TaskGUID, taskExitCode.TaskRemote, err))
 			}
 
 			err = container.Delete(e.Ctx, containerd.WithSnapshotCleanup)
 			if err != nil {
-				log.Fatalln(err)
+				log.Fatalln(fmt.Errorf("Error deleting container %s (%s): %s", taskExitCode.TaskGUID, taskExitCode.TaskRemote, err))
 			}
 
 			if _, ok := e.Groups[taskExitCode.GroupName]; ok {
