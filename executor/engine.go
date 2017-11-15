@@ -104,6 +104,12 @@ func (e *Executor) run() {
 				log.Fatalln(fmt.Errorf("Error deleting task (%s, %s): %s", taskExitCode.TaskGUID, taskExitCode.TaskRemote, err))
 			}
 
+			exitStatusC, err := e.Tasks[taskExitCode.TaskRemote].Wait(e.Ctx)
+			if err != nil {
+				log.Fatalln(fmt.Errorf("Error waiting for task %s (%s): %s", taskExitCode.TaskGUID, taskExitCode.TaskRemote, err))
+			}
+			<-exitStatusC
+
 			container, err := e.Client.LoadContainer(e.Ctx, taskExitCode.TaskGUID)
 			if err != nil {
 				log.Fatalln(fmt.Errorf("Error loading container %s (%s): %s", taskExitCode.TaskGUID, taskExitCode.TaskRemote, err))
