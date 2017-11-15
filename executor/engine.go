@@ -99,19 +99,18 @@ func (e *Executor) run() {
 				log.Fatalln(fmt.Errorf("Error killing task (%s, %s): %s", taskExitCode.TaskGUID, taskExitCode.TaskRemote, err))
 			}
 
-			var container containerd.Container
+			container, err := e.Client.LoadContainer(e.Ctx, taskExitCode.TaskGUID)
+			if err != nil {
+				log.Println(fmt.Errorf("Error loading container %s (%s): %s", taskExitCode.TaskGUID, taskExitCode.TaskRemote, err))
+			}
+
 			for {
-				container, err = e.Client.LoadContainer(e.Ctx, taskExitCode.TaskGUID)
+				err = container.Delete(e.Ctx, containerd.WithSnapshotCleanup)
 				if err != nil {
-					log.Println(fmt.Errorf("Error loading container %s (%s): %s", taskExitCode.TaskGUID, taskExitCode.TaskRemote, err))
+					log.Println(fmt.Errorf("Error deleting container %s (%s): %s", taskExitCode.TaskGUID, taskExitCode.TaskRemote, err))
 					continue
 				}
 				break
-			}
-
-			err = container.Delete(e.Ctx, containerd.WithSnapshotCleanup)
-			if err != nil {
-				log.Fatalln(fmt.Errorf("Error deleting container %s (%s): %s", taskExitCode.TaskGUID, taskExitCode.TaskRemote, err))
 			}
 
 			if _, ok := e.Groups[taskExitCode.GroupName]; ok {
