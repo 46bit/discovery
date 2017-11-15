@@ -53,14 +53,14 @@ func (e *Executor) createGroup(group Group) {
 func (e *Executor) createTask(groupName string, machine Machine) {
 	task, err := runTask(machine, e.Namespace, e.Client)
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatalln(fmt.Errorf("Error running task of %s (%s): %s", machine.GUID, machine.Remote, err))
 	}
 	exitStatusC, err := task.Wait(e.Ctx)
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatalln(fmt.Errorf("Error waiting for task %s (%s): %s", machine.GUID, machine.Remote, err))
 	}
 	if err := task.Start(e.Ctx); err != nil {
-		log.Fatalln(err)
+		log.Fatalln(fmt.Errorf("Error starting task %s (%s): %s", machine.GUID, machine.Remote, err))
 	}
 	e.Tasks[machine.Remote] = task
 	go func(taskExitCodes chan TaskExitCode, exitStatusC <-chan containerd.ExitStatus) {
@@ -78,7 +78,7 @@ func (e *Executor) deleteGroup(groupName string) {
 	for remote := range e.Groups[groupName].Machines {
 		err := e.Tasks[remote].Kill(e.Ctx, syscall.SIGTERM)
 		if err != nil {
-			log.Fatalln(err)
+			log.Fatalln(fmt.Errorf("Error deleting group %s: %s", err))
 		}
 	}
 	delete(e.Groups, groupName)
@@ -99,9 +99,14 @@ func (e *Executor) run() {
 				log.Fatalln(fmt.Errorf("Error killing task (%s, %s): %s", taskExitCode.TaskGUID, taskExitCode.TaskRemote, err))
 			}
 
+			_, err = e.Tasks[taskExitCode.TaskRemote].Delete(e.Ctx)
+			if err != nil {
+				log.Fatalln(fmt.Errorf("Error deleting task (%s, %s): %s", taskExitCode.TaskGUID, taskExitCode.TaskRemote, err))
+			}
+
 			container, err := e.Client.LoadContainer(e.Ctx, taskExitCode.TaskGUID)
 			if err != nil {
-				log.Println(fmt.Errorf("Error loading container %s (%s): %s", taskExitCode.TaskGUID, taskExitCode.TaskRemote, err))
+				log.Fatalln(fmt.Errorf("Error loading container %s (%s): %s", taskExitCode.TaskGUID, taskExitCode.TaskRemote, err))
 			}
 
 			for {
