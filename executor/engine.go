@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/containerd/containerd"
+	"github.com/containerd/containerd/errdefs"
 	"github.com/containerd/containerd/namespaces"
 	"log"
 	"syscall"
@@ -92,6 +93,11 @@ func (e *Executor) run() {
 			e.deleteGroup(groupName)
 		case taskExitCode := <-e.TaskExitCodes:
 			fmt.Println(taskExitCode)
+
+			err := e.Tasks[taskExitCode.TaskRemote].Kill(e.Ctx, syscall.SIGKILL, containerd.WithKillAll)
+			if err != nil && !errdefs.IsFailedPrecondition(err) && !errdefs.IsNotFound(err) {
+				log.Fatalln(err)
+			}
 
 			container, err := e.Client.LoadContainer(e.Ctx, taskExitCode.TaskGUID)
 			if err != nil {
