@@ -28,7 +28,7 @@ func main() {
 	newGroups <- groupA
 	time.Sleep(1 * time.Second)
 
-	groupB := NewGroup("b", []string{"docker.io/46bit/hello-world:latest", "docker.io/46bit/sender:latest", "docker.io/46bit/receiver:latest"})
+	groupB := NewGroup("b", []string{"docker.io/46bit/sender:latest", "docker.io/46bit/receiver:latest"})
 	newGroups <- groupB
 	time.Sleep(10 * time.Second)
 
