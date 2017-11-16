@@ -1,11 +1,15 @@
 # DOCKER INSTALLATION
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
-sudo add-apt-repository \
-   "deb [arch=amd64] https://download.docker.com/linux/ubuntu \
-   $(lsb_release -cs) \
-   stable"
-sudo apt-get update
-sudo apt-get install docker-ce
+#curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+#sudo add-apt-repository \
+#   "deb [arch=amd64] https://download.docker.com/linux/ubuntu \
+#   $(lsb_release -cs) \
+#   stable"
+#sudo apt-get update
+#sudo apt-get install docker-ce
+wget https://get.docker.com/builds/Linux/x86_64/docker-17.04.0-ce.tgz
+tar xzvf docker-17.04.0-ce.tgz
+echo 'export PATH="$HOME/docker:$PATH"' >> .bashrc
+source .bashrc
 
 # GOLANG INSTALLATION
 sudo add-apt-repository ppa:gophers/archive
