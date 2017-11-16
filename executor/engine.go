@@ -81,9 +81,11 @@ func (e *Executor) deleteGroup(groupName string) {
 			log.Fatalln(fmt.Errorf("Error getting status for %s when deleting group %s: %s", remote, groupName, err))
 		}
 
-		err = e.Tasks[remote].Kill(e.Ctx, syscall.SIGTERM)
-		if err != nil {
-			log.Fatalln(fmt.Errorf("Error deleting group %s (%s): %s", groupName, prevStatus, err))
+		if prevStatus.Status == containerd.Running || prevStatus.Status == containerd.Paused || prevStatus.Status == containerd.Pausing {
+			err = e.Tasks[remote].Kill(e.Ctx, syscall.SIGTERM)
+			if err != nil {
+				log.Fatalln(fmt.Errorf("Error deleting group %s (%s): %s", groupName, prevStatus, err))
+			}
 		}
 	}
 	delete(e.Groups, groupName)
@@ -97,7 +99,7 @@ func (e *Executor) run() {
 		case groupName := <-e.DeleteGroups:
 			e.deleteGroup(groupName)
 		case taskExitCode := <-e.TaskExitCodes:
-			fmt.Println(taskExitCode)
+			log.Printf("%+v\n", taskExitCode)
 
 			err := e.Tasks[taskExitCode.TaskRemote].Kill(e.Ctx, syscall.SIGKILL, containerd.WithKillAll)
 			if err != nil && !errdefs.IsFailedPrecondition(err) && !errdefs.IsNotFound(err) {
