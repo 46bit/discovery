@@ -24,10 +24,17 @@ func main() {
 		e.run()
 	}(e)
 
-	group := NewGroup("a", []string{"docker.io/46bit/hello-world:latest", "docker.io/46bit/long-running:latest"})
-	newGroups <- group
+	groupA := NewGroup("a", []string{"docker.io/46bit/hello-world:latest", "docker.io/46bit/long-running:latest"})
+	newGroups <- groupA
+	time.Sleep(1 * time.Second)
+
+	groupB := NewGroup("b", []string{"docker.io/46bit/hello-world:latest", "docker.io/46bit/sender:latest", "docker.io/46bit/receiver:latest"})
+	newGroups <- groupB
 	time.Sleep(10 * time.Second)
 
-	deleteGroups <- group.Name
+	deleteGroups <- groupA.Name
+	time.Sleep(10 * time.Second)
+
+	deleteGroups <- groupB.Name
 	time.Sleep(10 * time.Second)
 }
