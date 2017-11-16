@@ -78,7 +78,7 @@ func (e *Executor) deleteGroup(groupName string) {
 	for remote := range e.Groups[groupName].Machines {
 		err := e.Tasks[remote].Kill(e.Ctx, syscall.SIGTERM)
 		if err != nil {
-			log.Fatalln(fmt.Errorf("Error deleting group %s: %s", err))
+			log.Fatalln(fmt.Errorf("Error deleting group %s (%s): %s", groupName, e.Tasks[remote].Status, err))
 		}
 	}
 	delete(e.Groups, groupName)
