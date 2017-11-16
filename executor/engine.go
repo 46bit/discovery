@@ -81,6 +81,9 @@ func (e *Executor) deleteGroup(groupName string) {
 			log.Fatalln(fmt.Errorf("Error getting status for %s when deleting group %s: %s", remote, groupName, err))
 		}
 
+		// @TODO: Potential race condition with restarting tasks, in time.
+		// @TODO: Check about paused/pausing containers.
+		// @TODO: Want to SIGTERM but then SIGKILL if not stopped within given time.
 		if prevStatus.Status == containerd.Running || prevStatus.Status == containerd.Paused || prevStatus.Status == containerd.Pausing {
 			err = e.Tasks[remote].Kill(e.Ctx, syscall.SIGTERM)
 			if err != nil {
@@ -88,6 +91,7 @@ func (e *Executor) deleteGroup(groupName string) {
 			}
 		}
 	}
+	// @TODO: May want to retain for awhile to ensure all tasks are gone.
 	delete(e.Groups, groupName)
 }
 
@@ -101,7 +105,7 @@ func (e *Executor) run() {
 		case taskExitCode := <-e.TaskExitCodes:
 			log.Printf("%+v\n", taskExitCode)
 
-			err := e.Tasks[taskExitCode.TaskRemote].Kill(e.Ctx, syscall.SIGKILL, containerd.WithKillAll)
+			err := e.Tasks[taskExitCode.TaskRemote].Kill(e.Ctx, syscall.SIGTERM, containerd.WithKillAll)
 			if err != nil && !errdefs.IsFailedPrecondition(err) && !errdefs.IsNotFound(err) {
 				log.Fatalln(fmt.Errorf("Error killing task (%s, %s): %s", taskExitCode.TaskGUID, taskExitCode.TaskRemote, err))
 			}
@@ -122,13 +126,9 @@ func (e *Executor) run() {
 				log.Fatalln(fmt.Errorf("Error loading container %s (%s): %s", taskExitCode.TaskGUID, taskExitCode.TaskRemote, err))
 			}
 
-			for {
-				err = container.Delete(e.Ctx, containerd.WithSnapshotCleanup)
-				if err != nil {
-					log.Println(fmt.Errorf("Error deleting container %s (%s): %s", taskExitCode.TaskGUID, taskExitCode.TaskRemote, err))
-					continue
-				}
-				break
+			err = container.Delete(e.Ctx, containerd.WithSnapshotCleanup)
+			if err != nil {
+				log.Println(fmt.Errorf("Error deleting container %s (%s): %s", taskExitCode.TaskGUID, taskExitCode.TaskRemote, err))
 			}
 
 			if _, ok := e.Groups[taskExitCode.GroupName]; ok {
