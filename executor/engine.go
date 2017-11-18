@@ -51,7 +51,7 @@ func (e *Executor) createGroup(group Group) {
 }
 
 func (e *Executor) createTask(groupName string, machine Machine) {
-	task, err := runTask(machine, "discovery.group"+groupName, e.Client)
+	task, err := runTask(machine, "default", e.Client)
 	if err != nil {
 		log.Fatalln(fmt.Errorf("Error running task of %s (%s): %s", machine.GUID, machine.Remote, err))
 	}
