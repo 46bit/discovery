@@ -35,6 +35,7 @@ func main() {
 	deleteGroups <- groupA.Name
 	time.Sleep(10 * time.Second)
 
-	deleteGroups <- groupB.Name
-	time.Sleep(10 * time.Second)
+	for {
+		time.Sleep(10 * time.Second)
+	}
 }
