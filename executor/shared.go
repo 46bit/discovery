@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/containerd/containerd"
-	"github.com/containerd/containerd/containers"
 	"github.com/containerd/containerd/namespaces"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/satori/go.uuid"
@@ -58,9 +57,9 @@ func runTask(machine Machine, namespace string, client *containerd.Client) (cont
 	container, err := client.NewContainer(
 		ctx,
 		machine.GUID,
+		containerd.WithSpec(spec, containerd.WithHostNamespace(specs.NetworkNamespace)),
 		containerd.WithImage(image),
 		containerd.WithNewSnapshot(machine.SnapshotGUID(), image),
-		containerd.WithSpec(spec, withHostNetworkNamespace),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("Error creating container: %s", err)
@@ -73,13 +72,4 @@ func runTask(machine Machine, namespace string, client *containerd.Client) (cont
 	}
 
 	return task, nil
-}
-
-// adapted from WithHtop https://github.com/containerd/containerd/blob/a6ce1ef2a140d79856a8647e1d1ae5ac9ab581eb/docs/client-opts.md
-func withHostNetworkNamespace(context context.Context, client *containerd.Client, container *containers.Container, s *specs.Spec) error {
-	// make sure we are in the host network namespace
-	if err := containerd.WithHostNamespace(specs.NetworkNamespace)(context, client, container, s); err != nil {
-		return err
-	}
-	return nil
 }
