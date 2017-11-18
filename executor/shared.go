@@ -57,7 +57,7 @@ func runTask(machine Machine, namespace string, client *containerd.Client) (cont
 	container, err := client.NewContainer(
 		ctx,
 		machine.GUID,
-		containerd.WithSpec(spec, containerd.WithHostNamespace(specs.NetworkNamespace)),
+		containerd.WithSpec(spec, containerd.WithImageConfig(image), containerd.WithHostNamespace(specs.NetworkNamespace)),
 		containerd.WithImage(image),
 		containerd.WithNewSnapshot(machine.SnapshotGUID(), image),
 	)
