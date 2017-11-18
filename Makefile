@@ -5,7 +5,7 @@ bin/executor:
 	mkdir -p bin
 	go build \
 	  -o bin/executor \
-	  executor/main.go executor/shared.go executor/engine.go
+	  executor/main.go executor/shared.go executor/spec.go executor/engine.go
 
 .PHONY: hello-world
 hello-world:
