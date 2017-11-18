@@ -116,6 +116,7 @@ func containerMountsSpec() []specs.Mount {
 }
 
 func containerLinuxSpec(ns string, id string) *specs.Linux {
+	memoryLimit := int64(536870912)
 	return &specs.Linux{
 		MaskedPaths: []string{
 			"/proc/kcore",
@@ -136,6 +137,9 @@ func containerLinuxSpec(ns string, id string) *specs.Linux {
 		},
 		CgroupsPath: filepath.Join("/", ns, id),
 		Resources: &specs.LinuxResources{
+			Memory: &specs.LinuxMemory{
+				Limit: &memoryLimit,
+			},
 			Devices: []specs.LinuxDeviceCgroup{
 				{
 					Allow:  false,
