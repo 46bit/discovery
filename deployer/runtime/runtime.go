@@ -7,28 +7,25 @@ import (
 	"github.com/containerd/containerd/namespaces"
 	"log"
 	"syscall"
-	"time"
 )
 
 type Runtime struct {
-	Client      *containerd.Client
-	Containers  map[string]Container
-	Tasks       map[string]taskRuntime
-	Add         chan Container
-	Remove      chan string
-	ForceRemove chan string
-	Exit        chan taskExit
+	Client     *containerd.Client
+	Containers map[string]Container
+	Tasks      map[string]taskRuntime
+	Add        chan Container
+	Remove     chan string
+	Exit       chan taskExit
 }
 
 func NewRuntime(client *containerd.Client) *Runtime {
 	return &Runtime{
-		Client:      client,
-		Containers:  map[string]Container{},
-		Tasks:       map[string]taskRuntime{},
-		Add:         make(chan Container),
-		Remove:      make(chan string),
-		ForceRemove: make(chan string),
-		Exit:        make(chan taskExit),
+		Client:     client,
+		Containers: map[string]Container{},
+		Tasks:      map[string]taskRuntime{},
+		Add:        make(chan Container),
+		Remove:     make(chan string),
+		Exit:       make(chan taskExit),
 	}
 }
 
@@ -45,16 +42,6 @@ func (r *Runtime) Run() {
 			err := r.kill(containerID, syscall.SIGTERM)
 			if err != nil {
 				log.Println(fmt.Sprintf("Error killing container %s: %s", containerID, err))
-			}
-			delete(r.Containers, containerID)
-			go func(forceRemove chan string, containerID string) {
-				time.Sleep(10 * time.Second)
-				forceRemove <- containerID
-			}(r.ForceRemove, containerID)
-		case containerID := <-r.ForceRemove:
-			err := r.kill(containerID, syscall.SIGKILL)
-			if err != nil {
-				log.Println(fmt.Sprintf("Error force-killing container %s: %s", containerID, err))
 			}
 			delete(r.Containers, containerID)
 		case taskExit := <-r.Exit:
@@ -130,6 +117,7 @@ func (r *Runtime) delete(id string) error {
 	if err != nil {
 		return fmt.Errorf("Error deleting task %s: %s", id, err)
 	}
+	delete(r.Tasks, id)
 
 	containerdContainer, err := r.Client.LoadContainer(ctx, id)
 	if err != nil {
