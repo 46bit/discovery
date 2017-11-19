@@ -1,3 +1,5 @@
+.DEFAULT_GOAL := help
+
 .PHONY: all
 all:
 	@for NAME in $$(ls); do \
@@ -51,3 +53,6 @@ clean-container: check-env
 	cd "${NAME}" && \
 	rm -rf build && \
 	docker rmi "46bit/${NAME}"
+
+help:
+	@awk -F":.*## " '$$2&&$$1~/^[a-zA-Z_%-]+/{printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
