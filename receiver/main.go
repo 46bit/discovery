@@ -3,13 +3,18 @@ package main
 import (
 	"encoding/json"
 	"github.com/46bit/discovery"
-	"github.com/davecgh/go-spew/spew"
+	//"github.com/davecgh/go-spew/spew"
+	"fmt"
 	"log"
 	"net/http"
+	"sync/atomic"
 )
 
 func main() {
 	log.Println("Started...")
+
+	var requests *uint64 = new(uint64)
+	atomic.StoreUint64(requests, 0)
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.Body == nil {
@@ -27,7 +32,11 @@ func main() {
 		}
 
 		http.Error(w, `{"success": "true"}`, 200)
-		log.Println("Request was valid: %s", spew.Sdump(m))
+		//log.Println("Request was valid: %s", spew.Sdump(m))
+		requestsValue := atomic.AddUint64(requests, 1)
+		if requestsValue%1000 == 0 {
+			fmt.Println(requestsValue)
+		}
 	})
 
 	http.ListenAndServe(":4700", nil)
