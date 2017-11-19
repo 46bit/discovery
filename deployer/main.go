@@ -25,14 +25,14 @@ func main() {
 		Name: "senders-receiver",
 		Jobs: []deployer.Job{
 			deployer.Job{
-				Name:     "sender",
-				Remote:   "docker.io/46bit/sender:latest",
-				Replicas: 3,
+				Name:      "sender",
+				Remote:    "docker.io/46bit/sender:latest",
+				Instances: 3,
 			},
 			deployer.Job{
-				Name:     "receiver",
-				Remote:   "docker.io/46bit/receiver:latest",
-				Replicas: 1,
+				Name:      "receiver",
+				Remote:    "docker.io/46bit/receiver:latest",
+				Instances: 1,
 			},
 		},
 	}
