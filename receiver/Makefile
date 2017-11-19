@@ -8,7 +8,7 @@ go-build:
 	mkdir -p build
 	CGO_ENABLED=0 GOOS=linux go build \
 	  -a -installsuffix cgo \
-	  -o "build/main" \
+	  -o "build/receiver" \
 	  .
 
 .PHONY: docker-build
