@@ -31,7 +31,7 @@ type Job struct {
 }
 
 func (j *Job) ContainerID(replicaNumber uint) string {
-	return fmt.Sprintf("%s.%s", j.Name, replicaNumber)
+	return fmt.Sprintf("%s.%d", j.Name, replicaNumber)
 }
 
 func (j *Job) Containers(namespace string) []runtime.Container {
