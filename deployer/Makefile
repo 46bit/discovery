@@ -1,12 +1,11 @@
-.PHONY: all
-all: build
+.DEFAULT_GOAL := help
 
-.PHONY: build
-build:
-	mkdir -p ../bin
-	go build \
-		-o ../bin/deployer
+.PHONY: all build
+all: build ## build everything
+build: deployer.bin ## build deployer
 
-.PHONY: clean
-clean:
-	rm -f ../bin/deployer
+deployer.bin: ## compile deployer.bin
+	go build -o $@
+
+help:
+	@awk -F":.*## " '$$2&&$$1~/^[a-zA-Z_%-]+/{printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)

@@ -1,18 +1,23 @@
+.DEFAULT_GOAL := help
+
 .PHONY: all
-all: bin/deployer containers
+all: bin/deployer containers ## build everything
 
-bin/deployer:
-	$(MAKE) -C deployer
+bin/deployer: deployer/deployer.bin ## build deployer tool from source
+	mkdir -p bin
+	cp deployer/deployer.bin bin/deployer
+deployer/deployer.bin:
+	$(MAKE) -C deployer deployer.bin
 
-.PHONY: containers
-containers:
-	$(MAKE) -C containers
-
-.PHONY: container
-container:
-	$(MAKE) container -C containers
+.PHONY: container containers
+containers: containers-all ## build all containers # FIXME!
+container: containers-container ## build a container # FIXME!
+containers-%:
+	$(MAKE) -C containers $*
 
 .PHONY: clean
-clean:
+clean: containers-clean ## remove binary artifacts and containers
 	rm -rf bin
-	$(MAKE) clean -C containers
+
+help:
+	@awk -F":.*## " '$$2&&$$1~/^[a-zA-Z_%-]+/{printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
