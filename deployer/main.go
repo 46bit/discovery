@@ -27,7 +27,7 @@ func main() {
 			deployer.Job{
 				Name:      "sender",
 				Remote:    "docker.io/46bit/sender:latest",
-				Instances: 3,
+				Instances: 10,
 			},
 			deployer.Job{
 				Name:      "receiver",
