@@ -3,7 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/46bit/discovery"
+	"github.com/46bit/discovery/containers"
 	//"io/ioutil"
 	"log"
 	"net/http"
@@ -18,7 +18,7 @@ func main() {
 	var i uint64
 	for i = 0; true; i++ {
 		func(i uint64) {
-			message := discovery.Message{
+			message := containers.Message{
 				Number: i,
 				Text:   "Sender sending.",
 			}

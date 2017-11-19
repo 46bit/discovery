@@ -1,4 +1,4 @@
-package discovery
+package containers
 
 type Message struct {
 	Number uint64 `json:"number"`

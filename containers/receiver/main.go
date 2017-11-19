@@ -2,7 +2,7 @@ package main
 
 import (
 	"encoding/json"
-	"github.com/46bit/discovery"
+	"github.com/46bit/discovery/containers"
 	//"github.com/davecgh/go-spew/spew"
 	"fmt"
 	"log"
@@ -23,7 +23,7 @@ func main() {
 			return
 		}
 
-		var m discovery.Message
+		var m containers.Message
 		err := json.NewDecoder(r.Body).Decode(&m)
 		if err != nil {
 			http.Error(w, `{"error": "Request body was not valid JSON."}`, 400)
