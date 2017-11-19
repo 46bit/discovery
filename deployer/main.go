@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/46bit/discovery/deployer/deployer"
 	"github.com/46bit/discovery/deployer/runtime"
 	"github.com/containerd/containerd"
 	"log"
@@ -20,28 +21,30 @@ func main() {
 	runtime := runtime.NewRuntime(client)
 	go runtime.Run()
 
-	time.Sleep(10 * time.Second)
-	runtime.Shutdown <- true
+	deployment := deployer.Deployment{
+		Name: "senders-receiver",
+		Jobs: []deployer.Job{
+			deployer.Job{
+				Name:     "sender",
+				Remote:   "docker.io/46bit/sender:latest",
+				Replicas: 3,
+			},
+			deployer.Job{
+				Name:     "receiver",
+				Remote:   "docker.io/46bit/receiver:latest",
+				Replicas: 1,
+			},
+		},
+	}
 
-	// newGroups := make(chan Group)
-	// deleteGroups := make(chan string)
-	// e := NewExecutor("default", client, newGroups, deleteGroups)
-	// go func(e *Executor) {
-	// 	e.run()
-	// }(e)
+	deployer := deployer.NewDeployer(runtime)
+	go deployer.Run()
 
-	// groupA := NewGroup("A", []string{"docker.io/46bit/hello-world:latest", "docker.io/46bit/long-running:latest"})
-	// newGroups <- groupA
-	// time.Sleep(1 * time.Second)
+	deployer.Add <- deployment
+	time.Sleep(time.Minute)
+	deployer.Remove <- deployment.Name
 
-	// groupB := NewGroup("B", []string{"docker.io/46bit/sender:latest", "docker.io/46bit/receiver:latest"})
-	// newGroups <- groupB
-	// time.Sleep(10 * time.Second)
-
-	// deleteGroups <- groupA.Name
-	// time.Sleep(10 * time.Second)
-
-	// for {
-	// 	time.Sleep(10 * time.Second)
-	// }
+	for {
+		time.Sleep(10 * time.Second)
+	}
 }

@@ -47,7 +47,6 @@ func createTask(ctx context.Context, container containerd.Container) (containerd
 	err = task.Start(ctx)
 	if err != nil {
 		task.Delete(ctx)
-		container.Delete(ctx, containerd.WithSnapshotCleanup)
 		return nil, nil, fmt.Errorf("Error starting task %s: %s", container.ID(), err)
 	}
 

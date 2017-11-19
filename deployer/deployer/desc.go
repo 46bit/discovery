@@ -1,6 +1,9 @@
 package deployer
 
-import "fmt"
+import (
+	"fmt"
+	"github.com/46bit/discovery/deployer/runtime"
+)
 
 // deployment:
 //   name: "senders-receiver"
@@ -17,6 +20,10 @@ type Deployment struct {
 	Jobs []Job  `json:"jobs"`
 }
 
+func (d *Deployment) Namespace() string {
+	return "deployment." + d.Name
+}
+
 type Job struct {
 	Name     string `json:"name"`
 	Remote   string `json:"remote"`
@@ -27,20 +34,14 @@ func (j *Job) ContainerID(replicaNumber uint) string {
 	return fmt.Sprintf("%s.%s", j.Name, replicaNumber)
 }
 
-func (j *Job) Containers(namespace string) []Container {
-	containers := []Container{}
+func (j *Job) Containers(namespace string) []runtime.Container {
+	containers := []runtime.Container{}
 	for i := uint(0); i < j.Replicas; i++ {
-		containers[i] = Container{
+		containers[i] = runtime.Container{
 			ID:        j.ContainerID(i),
 			Remote:    j.Remote,
 			Namespace: namespace,
 		}
 	}
 	return containers
-}
-
-type Container struct {
-	ID        string
-	Remote    string
-	Namespace string
 }
