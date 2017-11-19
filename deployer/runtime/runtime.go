@@ -39,12 +39,12 @@ func (r *Runtime) Run() {
 			r.Containers[container.ID] = container
 			err := r.run(container.ID)
 			if err != nil {
-				log.Println(err)
+				log.Println(fmt.Sprintf("Error running container %s: %s", container.ID, err))
 			}
 		case containerID := <-r.Remove:
 			err := r.kill(containerID, syscall.SIGTERM)
 			if err != nil {
-				log.Println(err)
+				log.Println(fmt.Sprintf("Error killing container %s: %s", containerID, err))
 			}
 			delete(r.Containers, containerID)
 			go func(forceRemove chan string, containerID string) {
@@ -54,19 +54,19 @@ func (r *Runtime) Run() {
 		case containerID := <-r.ForceRemove:
 			err := r.kill(containerID, syscall.SIGKILL)
 			if err != nil {
-				log.Println(err)
+				log.Println(fmt.Sprintf("Error force-killing container %s: %s", containerID, err))
 			}
 			delete(r.Containers, containerID)
 		case taskExit := <-r.Exit:
 			err := r.delete(taskExit.ContainerID)
 			if err != nil {
-				log.Println(err)
+				log.Println(fmt.Sprintf("Error deleting container %s: %s", taskExit.ContainerID, err))
 			}
 			_, ok := r.Containers[taskExit.ContainerID]
 			if ok {
 				err = r.run(taskExit.ContainerID)
 				if err != nil {
-					log.Println(err)
+					log.Println(fmt.Sprintf("Error re-running container %s: %s", taskExit.ContainerID, err))
 				}
 			}
 		}
