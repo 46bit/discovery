@@ -1,11 +1,8 @@
 .PHONY: all
 all: bin/executor hello-world long-running receiver sender
 
-bin/executor:
-	mkdir -p bin
-	go build \
-	  -o bin/executor \
-	  executor/main.go executor/shared.go executor/spec.go executor/engine.go
+bin/deployer:
+	$(MAKE) -C deployer
 
 .PHONY: hello-world
 hello-world:
