@@ -37,11 +37,11 @@ func (j *Job) ContainerID(replicaNumber uint) string {
 func (j *Job) Containers(namespace string) []runtime.Container {
 	containers := []runtime.Container{}
 	for i := uint(0); i < j.Replicas; i++ {
-		containers[i] = runtime.Container{
+		containers = append(containers, runtime.Container{
 			ID:        j.ContainerID(i),
 			Remote:    j.Remote,
 			Namespace: namespace,
-		}
+		})
 	}
 	return containers
 }
