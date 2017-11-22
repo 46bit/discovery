@@ -19,7 +19,7 @@ func main() {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.Body == nil {
 			http.Error(w, `{"error": "Request body was missing."}`, 400)
-			log.Println("Request body was missing.")
+			log.Printf("Request body was missing.")
 			return
 		}
 
@@ -27,7 +27,7 @@ func main() {
 		err := json.NewDecoder(r.Body).Decode(&m)
 		if err != nil {
 			http.Error(w, `{"error": "Request body was not valid JSON."}`, 400)
-			log.Println("Request body was not valid JSON: %s.\n", err)
+			log.Printf("Request body was not valid JSON: %s.\n", err)
 			return
 		}
 
@@ -39,5 +39,18 @@ func main() {
 		}
 	})
 
-	http.ListenAndServe(":4700", nil)
+	listener, err := net.Listen("tcp", ":0")
+	if err != nil {
+		log.Fatalf("Error listening: %s\n", err)
+	}
+	listenPort := listener.Addr().(*net.TCPAddr).Port
+
+	go func(listenPort uint) {
+
+	})(listenPort)
+
+	err = http.Serve(listener, nil)
+	if err != nil {
+		log.Fatalf("Error serving on port %d: %s\n", listenPort, err)
+	}
 }
