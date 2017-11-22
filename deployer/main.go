@@ -21,7 +21,23 @@ func main() {
 	runtime := runtime.NewRuntime(client)
 	go runtime.Run()
 
-	deployment := deployer.Deployment{
+	depl := deployer.NewDeployer(runtime)
+	go depl.Run()
+
+	serviceDiscovery := deployer.Deployment{
+		Name: "service-discovery",
+		Jobs: []deployer.Job{
+			{
+				Name:      "discoverer",
+				Remote:    "docker.io/46bit/discoverer:latest",
+				Instances: 1,
+			},
+		},
+	}
+	depl.Add <- serviceDiscovery
+	time.Sleep(5 * time.Second)
+
+	sendersReceiver := deployer.Deployment{
 		Name: "senders-receiver",
 		Jobs: []deployer.Job{
 			deployer.Job{
@@ -36,15 +52,12 @@ func main() {
 			},
 		},
 	}
+	depl.Add <- sendersReceiver
+	time.Sleep(2 * time.Minute)
 
-	deployer := deployer.NewDeployer(runtime)
-	go deployer.Run()
+	depl.Remove <- sendersReceiver.Name
+	time.Sleep(5 * time.Second)
 
-	deployer.Add <- deployment
-	time.Sleep(time.Minute)
-	deployer.Remove <- deployment.Name
-
-	for {
-		time.Sleep(10 * time.Second)
-	}
+	depl.Remove <- serviceDiscovery.Name
+	time.Sleep(5 * time.Second)
 }
