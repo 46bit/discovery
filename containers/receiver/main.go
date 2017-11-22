@@ -6,6 +6,7 @@ import (
 	//"github.com/davecgh/go-spew/spew"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"sync/atomic"
 )
@@ -45,9 +46,13 @@ func main() {
 	}
 	listenPort := listener.Addr().(*net.TCPAddr).Port
 
-	go func(listenPort uint) {
-
-	})(listenPort)
+	err = containers.RegisterService(&containers.Service{
+		Name: "receiver",
+		Host: "[::1]:" + string(listenPort),
+	})
+	if err != nil {
+		log.Fatalln(err)
+	}
 
 	err = http.Serve(listener, nil)
 	if err != nil {

@@ -7,12 +7,30 @@ import (
 	//"io/ioutil"
 	"log"
 	"net/http"
+	"time"
 )
 
 func main() {
 	log.Println("Started...")
 
-	url := "http://[::1]:4700/"
+	var j uint64
+	var url string
+	for j = 0; j < 100; j++ {
+		services, err := containers.RetrieveService("receiver")
+		if err != nil {
+			log.Fatalln(err)
+		}
+		log.Printf("found services %s\n", services)
+		if len(services) > 0 {
+			url = "http://" + services[0].Host + "/"
+			break
+		}
+		time.Sleep(time.Second)
+	}
+	if url == "" {
+		log.Fatalln("No receiver service found in time.")
+	}
+
 	log.Printf("Sending to %s\n", url)
 
 	var i uint64
