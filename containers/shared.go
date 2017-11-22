@@ -26,7 +26,7 @@ func RegisterService(service *Service) error {
 		return err
 	}
 
-	resp, err := http.Post(serviceRegistryURL+"/register", "application/json", bytes.NewBuffer(serviceJSON))
+	resp, err := http.Post(serviceRegistryURL+"/services/register", "application/json", bytes.NewBuffer(serviceJSON))
 	if err != nil {
 		return err
 	}
@@ -38,7 +38,12 @@ func RegisterService(service *Service) error {
 }
 
 func RetrieveService(serviceName string) ([]Service, error) {
-	resp, err := http.Post(serviceRegistryURL+"/retrieve", "application/json", bytes.NewBufferString(serviceName))
+	serviceNameJSON, err := json.Marshal(serviceName)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := http.Post(serviceRegistryURL+"/services/retrieve", "application/json", bytes.NewBuffer(serviceNameJSON))
 	if err != nil {
 		return nil, err
 	}

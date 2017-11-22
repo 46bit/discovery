@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"github.com/46bit/discovery/containers"
 	//"io/ioutil"
+	"crypto/rand"
 	"log"
+	"math/big"
 	"net/http"
 	"time"
 )
@@ -22,7 +24,12 @@ func main() {
 		}
 		log.Printf("found services %s\n", services)
 		if len(services) > 0 {
-			url = "http://" + services[0].Host + "/"
+			serviceBigIndex, err := rand.Int(rand.Reader, big.NewInt(int64(len(services))))
+			if err != nil {
+				log.Fatalln(err)
+			}
+			serviceIndex := int(serviceBigIndex.Int64())
+			url = "http://" + services[serviceIndex].Host + "/"
 			break
 		}
 		time.Sleep(time.Second)

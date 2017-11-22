@@ -18,6 +18,7 @@ containers-%:
 .PHONY: clean
 clean: containers-clean ## remove binary artifacts and containers
 	rm -rf bin
+	$(MAKE) -C deployer clean
 
 help:
 	@awk -F":.*## " '$$2&&$$1~/^[a-zA-Z_%-]+/{printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)

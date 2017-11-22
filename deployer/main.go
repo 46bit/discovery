@@ -41,19 +41,24 @@ func main() {
 		Name: "senders-receiver",
 		Jobs: []deployer.Job{
 			deployer.Job{
-				Name:      "sender",
-				Remote:    "docker.io/46bit/sender:latest",
-				Instances: 10,
+				Name:      "aggregator",
+				Remote:    "docker.io/46bit/aggregator:latest",
+				Instances: 1,
 			},
 			deployer.Job{
 				Name:      "receiver",
 				Remote:    "docker.io/46bit/receiver:latest",
-				Instances: 1,
+				Instances: 7,
+			},
+			deployer.Job{
+				Name:      "sender",
+				Remote:    "docker.io/46bit/sender:latest",
+				Instances: 28,
 			},
 		},
 	}
 	depl.Add <- sendersReceiver
-	time.Sleep(2 * time.Minute)
+	time.Sleep(4 * time.Minute)
 
 	depl.Remove <- sendersReceiver.Name
 	time.Sleep(5 * time.Second)
