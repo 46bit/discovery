@@ -12,7 +12,7 @@ import (
 type Runtime struct {
 	Client     *containerd.Client
 	Namespaces map[string]context.Context
-	Containers map[string]Container
+	Containers map[string]*Container
 	Tasks      map[string]taskRuntime
 	Add        chan Container
 	Remove     chan string
@@ -23,7 +23,7 @@ func NewRuntime(client *containerd.Client) *Runtime {
 	return &Runtime{
 		Client:     client,
 		Namespaces: map[string]context.Context{},
-		Containers: map[string]Container{},
+		Containers: map[string]*Container{},
 		Tasks:      map[string]taskRuntime{},
 		Add:        make(chan Container),
 		Remove:     make(chan string),
@@ -35,30 +35,42 @@ func (r *Runtime) Run() {
 	for {
 		select {
 		case container := <-r.Add:
+			if container.State != Described {
+				log.Println(fmt.Sprintf("Added container was not in Described state: %s", container))
+				continue
+			}
 			if _, ok := r.Namespaces[container.Namespace]; !ok {
 				r.Namespaces[container.Namespace] = namespaces.WithNamespace(context.Background(), container.Namespace)
 			}
-			r.Containers[container.ID] = container
+			r.Containers[container.ID] = &container
 			err := r.run(container.ID)
 			if err != nil {
 				log.Println(fmt.Sprintf("Error running container %s: %s", container.ID, err))
+				continue
 			}
 		case containerID := <-r.Remove:
 			err := r.kill(containerID, syscall.SIGTERM)
 			if err != nil {
 				log.Println(fmt.Sprintf("Error killing container %s: %s", containerID, err))
+				continue
 			}
 			delete(r.Containers, containerID)
 		case taskExit := <-r.Exit:
+			container := r.Containers[taskExit.ContainerID]
+			container.State = Stopped
+
 			err := r.delete(taskExit.ContainerID)
 			if err != nil {
 				log.Println(fmt.Sprintf("Error deleting container %s: %s", taskExit.ContainerID, err))
+				continue
 			}
+
 			_, ok := r.Containers[taskExit.ContainerID]
 			if ok {
 				err = r.run(taskExit.ContainerID)
 				if err != nil {
 					log.Println(fmt.Sprintf("Error re-running container %s: %s", taskExit.ContainerID, err))
+					continue
 				}
 			}
 		}
@@ -72,6 +84,8 @@ func (r *Runtime) run(id string) error {
 	if err != nil {
 		return err
 	}
+	container.State = Created
+
 	containerdTask, exitStatusC, err := createTask(ctx, containerdContainer)
 	if err != nil {
 		containerdContainer.Delete(ctx, containerd.WithSnapshotCleanup)
@@ -81,6 +95,8 @@ func (r *Runtime) run(id string) error {
 		Task:      containerdTask,
 		Namespace: container.Namespace,
 	}
+	container.State = Started
+
 	go func(containerID string, exit chan taskExit, exitStatusC <-chan containerd.ExitStatus) {
 		exitStatus := <-exitStatusC
 		exit <- taskExit{
@@ -88,6 +104,7 @@ func (r *Runtime) run(id string) error {
 			ExitCode:    exitStatus,
 		}
 	}(container.ID, r.Exit, exitStatusC)
+
 	return nil
 }
 
@@ -123,16 +140,18 @@ func (r *Runtime) delete(id string) error {
 		return fmt.Errorf("Error deleting task %s: %s", id, err)
 	}
 	delete(r.Tasks, id)
+	container := r.Containers[id]
+	container.State = Deleted
 
 	containerdContainer, err := r.Client.LoadContainer(ctx, id)
 	if err != nil {
 		return fmt.Errorf("Error loading container %s: %s", id, err)
 	}
-
 	err = containerdContainer.Delete(ctx, containerd.WithSnapshotCleanup)
 	if err != nil {
 		return fmt.Errorf("Error deleting container %s: %s", id, err)
 	}
+	container.State = Erased
 
 	return nil
 }
@@ -145,10 +164,4 @@ type taskRuntime struct {
 type taskExit struct {
 	ContainerID string
 	ExitCode    containerd.ExitStatus
-}
-
-type Container struct {
-	ID        string
-	Remote    string
-	Namespace string
 }
