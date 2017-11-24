@@ -17,12 +17,14 @@ func main() {
 	counts := map[string]uint64{}
 
 	go func() {
-		sum := uint64(0)
-		for _, n := range counts {
-			sum += n
+		for {
+			sum := uint64(0)
+			for _, n := range counts {
+				sum += n
+			}
+			log.Printf("aggregator count = %d", sum)
+			time.Sleep(2 * time.Second)
 		}
-		log.Printf("aggregator count = %d", sum)
-		time.Sleep(2 * time.Second)
 	}()
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {

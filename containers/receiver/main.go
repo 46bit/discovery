@@ -61,10 +61,7 @@ func main() {
 
 		http.Error(w, `{"success": "true"}`, 200)
 		//log.Println("Request was valid: %s", spew.Sdump(m))
-		requestsValue := atomic.AddUint64(requests, 1)
-		if requestsValue%1000 == 0 {
-			fmt.Println(requestsValue)
-		}
+		atomic.AddUint64(requests, 1)
 	})
 
 	listener, err := net.Listen("tcp", ":0")

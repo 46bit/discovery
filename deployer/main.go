@@ -37,31 +37,38 @@ func main() {
 	depl.Add <- serviceDiscovery
 	time.Sleep(5 * time.Second)
 
-	sendersReceiver := deployer.Deployment{
-		Name: "senders-receiver",
-		Jobs: []deployer.Job{
-			deployer.Job{
-				Name:      "aggregator",
-				Remote:    "docker.io/46bit/aggregator:latest",
-				Instances: 1,
-			},
-			deployer.Job{
-				Name:      "receiver",
-				Remote:    "docker.io/46bit/receiver:latest",
-				Instances: 7,
-			},
-			deployer.Job{
-				Name:      "sender",
-				Remote:    "docker.io/46bit/sender:latest",
-				Instances: 28,
-			},
-		},
-	}
-	depl.Add <- sendersReceiver
-	time.Sleep(4 * time.Minute)
+	for i := uint(1); i <= 3; i++ {
+		for j := uint(1); j <= 7; j++ {
+			log.Printf("------\nSENDERS-RECEIVER SET WITH %d, %d\n------\n", i, j)
 
-	depl.Remove <- sendersReceiver.Name
-	time.Sleep(5 * time.Second)
+			sendersReceiver := deployer.Deployment{
+				Name: "senders-receiver",
+				Jobs: []deployer.Job{
+					deployer.Job{
+						Name:      "aggregator",
+						Remote:    "docker.io/46bit/aggregator:latest",
+						Instances: 1,
+					},
+					deployer.Job{
+						Name:      "receiver",
+						Remote:    "docker.io/46bit/receiver:latest",
+						Instances: i,
+					},
+					deployer.Job{
+						Name:      "sender",
+						Remote:    "docker.io/46bit/sender:latest",
+						Instances: i * j,
+					},
+				},
+			}
+			depl.Add <- sendersReceiver
+			time.Sleep(5 * time.Minute)
+
+			log.Printf("------\n")
+			depl.Remove <- sendersReceiver.Name
+			time.Sleep(30 * time.Second)
+		}
+	}
 
 	depl.Remove <- serviceDiscovery.Name
 	time.Sleep(5 * time.Second)
