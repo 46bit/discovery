@@ -11,6 +11,7 @@ import (
 
 type Runtime struct {
 	Client     *containerd.Client
+	Namespaces map[string]context.Context
 	Containers map[string]Container
 	Tasks      map[string]taskRuntime
 	Add        chan Container
@@ -21,6 +22,7 @@ type Runtime struct {
 func NewRuntime(client *containerd.Client) *Runtime {
 	return &Runtime{
 		Client:     client,
+		Namespaces: map[string]context.Context{},
 		Containers: map[string]Container{},
 		Tasks:      map[string]taskRuntime{},
 		Add:        make(chan Container),
@@ -33,6 +35,9 @@ func (r *Runtime) Run() {
 	for {
 		select {
 		case container := <-r.Add:
+			if _, ok := r.Namespaces[container.Namespace]; !ok {
+				r.Namespaces[container.Namespace] = namespaces.WithNamespace(context.Background(), container.Namespace)
+			}
 			r.Containers[container.ID] = container
 			err := r.run(container.ID)
 			if err != nil {
@@ -62,7 +67,7 @@ func (r *Runtime) Run() {
 
 func (r *Runtime) run(id string) error {
 	container := r.Containers[id]
-	ctx := namespaces.WithNamespace(context.Background(), container.Namespace)
+	ctx := r.Namespaces[container.Namespace]
 	containerdContainer, err := createContainer(r.Client, ctx, container.ID, container.Remote)
 	if err != nil {
 		return err
@@ -91,7 +96,7 @@ func (r *Runtime) kill(id string, signal syscall.Signal) error {
 	if !ok {
 		return nil
 	}
-	ctx := namespaces.WithNamespace(context.Background(), taskRuntime.Namespace)
+	ctx := r.Namespaces[taskRuntime.Namespace]
 	status, err := taskRuntime.Task.Status(ctx)
 	if err != nil {
 		return err
@@ -112,7 +117,7 @@ func (r *Runtime) kill(id string, signal syscall.Signal) error {
 
 func (r *Runtime) delete(id string) error {
 	taskRuntime := r.Tasks[id]
-	ctx := namespaces.WithNamespace(context.Background(), taskRuntime.Namespace)
+	ctx := r.Namespaces[taskRuntime.Namespace]
 	_, err := taskRuntime.Task.Delete(ctx)
 	if err != nil {
 		return fmt.Errorf("Error deleting task %s: %s", id, err)
