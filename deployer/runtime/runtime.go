@@ -6,17 +6,15 @@ import (
 	"github.com/containerd/containerd"
 	"github.com/containerd/containerd/namespaces"
 	"log"
-	"syscall"
 )
 
 type Runtime struct {
 	Client     *containerd.Client
 	Namespaces map[string]context.Context
 	Containers map[string]*Container
-	Tasks      map[string]taskRuntime
 	Add        chan Container
 	Remove     chan string
-	Exit       chan taskExit
+	exit       chan taskExit
 }
 
 func NewRuntime(client *containerd.Client) *Runtime {
@@ -24,10 +22,9 @@ func NewRuntime(client *containerd.Client) *Runtime {
 		Client:     client,
 		Namespaces: map[string]context.Context{},
 		Containers: map[string]*Container{},
-		Tasks:      map[string]taskRuntime{},
 		Add:        make(chan Container),
 		Remove:     make(chan string),
-		Exit:       make(chan taskExit),
+		exit:       make(chan taskExit),
 	}
 }
 
@@ -35,133 +32,100 @@ func (r *Runtime) Run() {
 	for {
 		select {
 		case container := <-r.Add:
-			if container.State != Described {
-				log.Println(fmt.Sprintf("Added container was not in Described state: %s", container))
-				continue
-			}
-			if _, ok := r.Namespaces[container.Namespace]; !ok {
-				r.Namespaces[container.Namespace] = namespaces.WithNamespace(context.Background(), container.Namespace)
-			}
-			r.Containers[container.ID] = &container
-			err := r.run(container.ID)
-			if err != nil {
-				log.Println(fmt.Sprintf("Error running container %s: %s", container.ID, err))
-				continue
-			}
+			r.runAdd(container)
 		case containerID := <-r.Remove:
-			err := r.kill(containerID, syscall.SIGTERM)
-			if err != nil {
-				log.Println(fmt.Sprintf("Error killing container %s: %s", containerID, err))
-				continue
-			}
-			delete(r.Containers, containerID)
-		case taskExit := <-r.Exit:
-			container := r.Containers[taskExit.ContainerID]
-			container.State = Stopped
-
-			err := r.delete(taskExit.ContainerID)
-			if err != nil {
-				log.Println(fmt.Sprintf("Error deleting container %s: %s", taskExit.ContainerID, err))
-				continue
-			}
-
-			_, ok := r.Containers[taskExit.ContainerID]
-			if ok {
-				err = r.run(taskExit.ContainerID)
-				if err != nil {
-					log.Println(fmt.Sprintf("Error re-running container %s: %s", taskExit.ContainerID, err))
-					continue
-				}
-			}
+			r.runRemove(containerID)
+		case taskExit := <-r.exit:
+			r.runExit(taskExit.containerID, taskExit.exitCode)
 		}
 	}
 }
 
-func (r *Runtime) run(id string) error {
-	container := r.Containers[id]
-	ctx := r.Namespaces[container.Namespace]
-	containerdContainer, err := createContainer(r.Client, ctx, container.ID, container.Remote)
-	if err != nil {
-		return err
+func (r *Runtime) runAdd(container Container) {
+	if container.State != Described {
+		log.Println(fmt.Sprintf("Added container was not in Described state: %s", container))
+		return
 	}
-	container.State = Created
+	r.Containers[container.ID] = &container
 
-	containerdTask, exitStatusC, err := createTask(ctx, containerdContainer)
-	if err != nil {
-		containerdContainer.Delete(ctx, containerd.WithSnapshotCleanup)
-		return err
+	namespace, ok := r.Namespaces[container.Namespace]
+	if !ok {
+		namespace := namespaces.WithNamespace(context.Background(), container.Namespace)
+		r.Namespaces[container.Namespace] = namespace
 	}
-	r.Tasks[container.ID] = taskRuntime{
-		Task:      containerdTask,
-		Namespace: container.Namespace,
-	}
-	container.State = Started
 
+	_, err := container.Create(r.Client, namespace)
+	if err != nil {
+		log.Println(fmt.Sprintf("Error creating container %s: %s", container.ID, err))
+		return
+	}
+	_, err = container.Prepare(r.Client, namespace)
+	if err != nil {
+		container.Erase(r.Client, namespace)
+		log.Println(fmt.Sprintf("Error preparing container %s: %s", container.ID, err))
+		return
+	}
+	exitStatusC, err := container.Start(r.Client, namespace)
+	if err != nil {
+		container.Delete(r.Client, namespace)
+		container.Erase(r.Client, namespace)
+		log.Println(fmt.Sprintf("Error preparing container %s: %s", container.ID, err))
+		return
+	}
 	go func(containerID string, exit chan taskExit, exitStatusC <-chan containerd.ExitStatus) {
 		exitStatus := <-exitStatusC
 		exit <- taskExit{
-			ContainerID: containerID,
-			ExitCode:    exitStatus,
+			containerID: containerID,
+			exitCode:    exitStatus,
 		}
-	}(container.ID, r.Exit, exitStatusC)
-
-	return nil
+	}(container.ID, r.exit, exitStatusC)
 }
 
-func (r *Runtime) kill(id string, signal syscall.Signal) error {
-	taskRuntime, ok := r.Tasks[id]
-	if !ok {
-		return nil
-	}
-	ctx := r.Namespaces[taskRuntime.Namespace]
-	status, err := taskRuntime.Task.Status(ctx)
+func (r *Runtime) runRemove(containerID string) {
+	container := r.Containers[containerID]
+	namespace := r.Namespaces[container.Namespace]
+
+	err := container.Sigkill(r.Client, namespace)
 	if err != nil {
-		return err
+		log.Println(fmt.Sprintf("Error killing container %s: %s", containerID, err))
+		return
 	}
-	switch status.Status {
-	case containerd.Running:
-		fallthrough
-	case containerd.Paused:
-		fallthrough
-	case containerd.Pausing:
-		err = taskRuntime.Task.Kill(ctx, signal, containerd.WithKillAll)
-		if err != nil {
-			return err
+}
+
+func (r *Runtime) runExit(containerID string, _ containerd.ExitStatus) {
+	container := r.Containers[containerID]
+	namespace := r.Namespaces[container.Namespace]
+
+	container.State = Exited
+
+	err := container.Delete(r.Client, namespace)
+	if err != nil {
+		log.Println(fmt.Sprintf("Error deleting container %s: %s", containerID, err))
+		return
+	}
+	_, err = container.Prepare(r.Client, namespace)
+	if err != nil {
+		container.Erase(r.Client, namespace)
+		log.Println(fmt.Sprintf("Error preparing container %s: %s", container.ID, err))
+		return
+	}
+	exitStatusC, err := container.Start(r.Client, namespace)
+	if err != nil {
+		container.Delete(r.Client, namespace)
+		container.Erase(r.Client, namespace)
+		log.Println(fmt.Sprintf("Error preparing container %s: %s", container.ID, err))
+		return
+	}
+	go func(containerID string, exit chan taskExit, exitStatusC <-chan containerd.ExitStatus) {
+		exitStatus := <-exitStatusC
+		exit <- taskExit{
+			containerID: containerID,
+			exitCode:    exitStatus,
 		}
-	}
-	return nil
-}
-
-func (r *Runtime) delete(id string) error {
-	taskRuntime := r.Tasks[id]
-	ctx := r.Namespaces[taskRuntime.Namespace]
-	_, err := taskRuntime.Task.Delete(ctx)
-	if err != nil {
-		return fmt.Errorf("Error deleting task %s: %s", id, err)
-	}
-	delete(r.Tasks, id)
-	container := r.Containers[id]
-	container.State = Deleted
-
-	containerdContainer, err := r.Client.LoadContainer(ctx, id)
-	if err != nil {
-		return fmt.Errorf("Error loading container %s: %s", id, err)
-	}
-	err = containerdContainer.Delete(ctx, containerd.WithSnapshotCleanup)
-	if err != nil {
-		return fmt.Errorf("Error deleting container %s: %s", id, err)
-	}
-	container.State = Erased
-
-	return nil
-}
-
-type taskRuntime struct {
-	Task      containerd.Task
-	Namespace string
+	}(container.ID, r.exit, exitStatusC)
 }
 
 type taskExit struct {
-	ContainerID string
-	ExitCode    containerd.ExitStatus
+	containerID string
+	exitCode    containerd.ExitStatus
 }
