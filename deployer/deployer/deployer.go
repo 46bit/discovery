@@ -4,6 +4,12 @@ import (
 	"github.com/46bit/discovery/deployer/runtime"
 )
 
+type Container struct {
+	ID        string
+	Remote    string
+	Namespace string
+}
+
 type Deployer struct {
 	Runtime     *runtime.Runtime
 	Deployments map[string]Deployment
