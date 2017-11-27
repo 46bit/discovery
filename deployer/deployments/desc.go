@@ -1,8 +1,8 @@
-package deployer
+package deployments
 
 import (
 	"fmt"
-	"github.com/46bit/discovery/deployer/runtime"
+	"github.com/46bit/discovery/deployer/containers"
 )
 
 // deployment:
@@ -34,14 +34,14 @@ func (j *Job) ContainerID(instanceNumber uint) string {
 	return fmt.Sprintf("%s.%d", j.Name, instanceNumber)
 }
 
-func (j *Job) Containers(namespace string) []runtime.Container {
-	containers := []runtime.Container{}
+func (j *Job) ContainerDescs(namespace string) []containers.ContainerDesc {
+	cs := []containers.ContainerDesc{}
 	for i := uint(0); i < j.Instances; i++ {
-		containers = append(containers, runtime.Container{
+		cs = append(cs, containers.ContainerDesc{
 			ID:        j.ContainerID(i),
 			Remote:    j.Remote,
 			Namespace: namespace,
 		})
 	}
-	return containers
+	return cs
 }

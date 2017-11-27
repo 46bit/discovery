@@ -1,8 +1,9 @@
 package main
 
 import (
-	"github.com/46bit/discovery/deployer/deployer"
-	"github.com/46bit/discovery/deployer/runtime"
+	"fmt"
+	"github.com/46bit/discovery/deployer/containers"
+	"github.com/46bit/discovery/deployer/deployments"
 	"github.com/containerd/containerd"
 	"log"
 	"math/rand"
@@ -18,15 +19,15 @@ func main() {
 	}
 	defer client.Close()
 
-	runtime := runtime.NewRuntime(client)
+	runtime := containers.NewRuntime(client)
 	go runtime.Run()
 
-	depl := deployer.NewDeployer(runtime)
+	depl := deployments.NewDeployer(runtime)
 	go depl.Run()
 
-	serviceDiscovery := deployer.Deployment{
+	serviceDiscovery := deployments.Deployment{
 		Name: "service-discovery",
-		Jobs: []deployer.Job{
+		Jobs: []deployments.Job{
 			{
 				Name:      "discoverer",
 				Remote:    "docker.io/46bit/discoverer:latest",
@@ -41,20 +42,20 @@ func main() {
 		for j := uint(1); j <= 7; j++ {
 			log.Printf("------\nSENDERS-RECEIVER SET WITH %d, %d\n------\n", i, j)
 
-			sendersReceiver := deployer.Deployment{
-				Name: "senders-receiver",
-				Jobs: []deployer.Job{
-					deployer.Job{
+			sendersReceiver := deployments.Deployment{
+				Name: fmt.Sprintf("senders-receiver-i%d-j%d", i, j),
+				Jobs: []deployments.Job{
+					{
 						Name:      "aggregator",
 						Remote:    "docker.io/46bit/aggregator:latest",
 						Instances: 1,
 					},
-					deployer.Job{
+					{
 						Name:      "receiver",
 						Remote:    "docker.io/46bit/receiver:latest",
 						Instances: i,
 					},
-					deployer.Job{
+					{
 						Name:      "sender",
 						Remote:    "docker.io/46bit/sender:latest",
 						Instances: i * j,

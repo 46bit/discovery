@@ -1,4 +1,4 @@
-package executor
+package containers
 
 import (
 	cd "github.com/containerd/containerd"
@@ -11,7 +11,7 @@ type task struct {
 	task  *cd.Task
 }
 
-func newTask(api cdApi, cdContainer cd.Container) (*task, error) {
+func newTask(api cdApi, cdContainer *cd.Container) (*task, error) {
 	t := task{}
 	if err := t.create(api, cdContainer); err != nil {
 		return nil, err
@@ -19,8 +19,8 @@ func newTask(api cdApi, cdContainer cd.Container) (*task, error) {
 	return &t, nil
 }
 
-func (t *task) create(api cdApi, cdContainer cd.Container) error {
-	cdTask, err := cdContainer.NewTask(api.context, cd.Stdio)
+func (t *task) create(api cdApi, cdContainer *cd.Container) error {
+	cdTask, err := (*cdContainer).NewTask(api.context, cd.Stdio)
 	if err != nil {
 		return err
 	}

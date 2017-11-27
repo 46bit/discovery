@@ -1,23 +1,17 @@
-package deployer
+package deployments
 
 import (
-	"github.com/46bit/discovery/deployer/runtime"
+	"github.com/46bit/discovery/deployer/containers"
 )
 
-type Container struct {
-	ID        string
-	Remote    string
-	Namespace string
-}
-
 type Deployer struct {
-	Runtime     *runtime.Runtime
+	Runtime     *containers.Runtime
 	Deployments map[string]Deployment
 	Add         chan Deployment
 	Remove      chan string
 }
 
-func NewDeployer(runtime *runtime.Runtime) *Deployer {
+func NewDeployer(runtime *containers.Runtime) *Deployer {
 	return &Deployer{
 		Runtime:     runtime,
 		Deployments: map[string]Deployment{},
@@ -42,7 +36,7 @@ func (d *Deployer) Run() {
 func (d *Deployer) add(name string) {
 	deployment := d.Deployments[name]
 	for _, job := range deployment.Jobs {
-		containers := job.Containers(deployment.Namespace())
+		containers := job.ContainerDescs(deployment.Namespace())
 		for _, container := range containers {
 			d.Runtime.Add <- container
 		}
@@ -52,7 +46,7 @@ func (d *Deployer) add(name string) {
 func (d *Deployer) remove(name string) {
 	deployment := d.Deployments[name]
 	for _, job := range deployment.Jobs {
-		containers := job.Containers(deployment.Namespace())
+		containers := job.ContainerDescs(deployment.Namespace())
 		for _, container := range containers {
 			d.Runtime.Remove <- container.ID
 		}

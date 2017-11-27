@@ -1,19 +1,18 @@
-package executor
+package containers
 
 import (
-	"github.com/46bit/discovery/deployer/deployer"
 	cd "github.com/containerd/containerd"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 )
 
 type container struct {
-	desc      deployer.Container
+	desc      ContainerDesc
 	state     state
 	container *cd.Container
 	task      *task
 }
 
-func newContainer(api cdApi, desc deployer.Container) (*container, error) {
+func newContainer(api cdApi, desc ContainerDesc) (*container, error) {
 	c := container{desc: desc}
 	if err := c.create(api); err != nil {
 		return nil, err

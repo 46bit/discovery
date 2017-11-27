@@ -1,14 +1,14 @@
-package executor
+package containers
 
 import (
 	"context"
-	"github.com/containerd/containerd/namespaces"
+	ns "github.com/containerd/containerd/namespaces"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"path/filepath"
 )
 
 func containerSpec(ctx context.Context, id string) (*specs.Spec, error) {
-	ns, err := namespaces.NamespaceRequired(ctx)
+	ns, err := ns.NamespaceRequired(ctx)
 	if err != nil {
 		return nil, err
 	}
