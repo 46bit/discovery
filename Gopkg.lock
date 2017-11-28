@@ -38,12 +38,6 @@
   revision = "f6943554a7e7e88b3c14aad190bf05932da84788"
 
 [[projects]]
-  name = "github.com/davecgh/go-spew"
-  packages = ["spew"]
-  revision = "346938d642f2ec3594ed81d874461961cd0faa76"
-  version = "v1.1.0"
-
-[[projects]]
   branch = "master"
   name = "github.com/docker/go-events"
   packages = ["."]
@@ -90,12 +84,6 @@
   packages = ["."]
   revision = "645ef00459ed84a119197bfb8d8205042c6df63d"
   version = "v0.8.0"
-
-[[projects]]
-  name = "github.com/satori/go.uuid"
-  packages = ["."]
-  revision = "879c5887cd475cd7864858769793b2ceb0d44feb"
-  version = "v1.1.0"
 
 [[projects]]
   name = "github.com/sirupsen/logrus"
@@ -148,6 +136,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "8e96233ea0d30f3beea9ab553274ab105d2557cd7f421c86dc44a24c3f5cc8fa"
+  inputs-digest = "838fa9f3eb4c9665c96046d641a5f2e54d3b56d27fd29fb7c622f6b4b24e91df"
   solver-name = "gps-cdcl"
   solver-version = 1

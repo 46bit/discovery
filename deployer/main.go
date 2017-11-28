@@ -63,7 +63,7 @@ func main() {
 				},
 			}
 			depl.Add <- sendersReceiver
-			time.Sleep(5 * time.Minute)
+			time.Sleep(time.Duration(int64(i)) * time.Minute)
 
 			log.Printf("------\n")
 			depl.Remove <- sendersReceiver.Name

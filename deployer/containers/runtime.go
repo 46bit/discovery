@@ -2,9 +2,9 @@ package containers
 
 import (
 	"context"
-	"errors"
 	cd "github.com/containerd/containerd"
 	ns "github.com/containerd/containerd/namespaces"
+	"github.com/pkg/errors"
 	"log"
 	"time"
 )
@@ -61,17 +61,17 @@ func (r *Runtime) runAdd(containerDesc ContainerDesc) error {
 
 	container, err := newContainer(api, containerDesc)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "Error creating new container")
 	}
 	r.containers[containerDesc.ID] = container
 
 	container.task, err = newTask(api, container.container)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "Error creating new task")
 	}
 	err = container.task.start(api)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "Error starting task")
 	}
 
 	return nil
@@ -80,18 +80,18 @@ func (r *Runtime) runAdd(containerDesc ContainerDesc) error {
 func (r *Runtime) runRemove(containerID string) error {
 	container, ok := r.containers[containerID]
 	if !ok {
-		return errors.New("Container not found to delete")
+		return errors.New("Container not found to remove")
 	}
 	namespace := r.namespace(container.desc.Namespace)
 	api := cdApi{client: r.client, context: namespace}
 
 	err := container.task.stop(api)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "Error stopping task")
 	}
 	err = container.task.delete(api)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "Error deleting task")
 	}
 	container.task = nil
 

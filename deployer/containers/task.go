@@ -2,6 +2,7 @@ package containers
 
 import (
 	cd "github.com/containerd/containerd"
+	"github.com/pkg/errors"
 	"syscall"
 	"time"
 )
@@ -22,7 +23,7 @@ func newTask(api cdApi, cdContainer *cd.Container) (*task, error) {
 func (t *task) create(api cdApi, cdContainer *cd.Container) error {
 	cdTask, err := (*cdContainer).NewTask(api.context, cd.Stdio)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "Error creating containerd task")
 	}
 	t.task = &cdTask
 	t.state = created
@@ -32,7 +33,7 @@ func (t *task) create(api cdApi, cdContainer *cd.Container) error {
 func (t *task) start(api cdApi) error {
 	err := (*t.task).Start(api.context)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "Error starting containerd task")
 	}
 	t.state = started
 	return nil
@@ -41,18 +42,18 @@ func (t *task) start(api cdApi) error {
 func (t *task) stop(api cdApi) error {
 	exitStatusC, err := (*t.task).Wait(api.context)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "Error waiting for containerd task")
 	}
 	err = (*t.task).Kill(api.context, syscall.SIGTERM, cd.WithKillAll)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "Error SIGTERMing containerd task")
 	}
 	select {
 	case <-exitStatusC:
 	case <-time.After(5 * time.Second):
 		err = (*t.task).Kill(api.context, syscall.SIGKILL, cd.WithKillAll)
 		if err != nil {
-			return err
+			return errors.Wrap(err, "Error SIGKILLing containerd task")
 		}
 	}
 	<-exitStatusC
@@ -63,7 +64,7 @@ func (t *task) stop(api cdApi) error {
 func (t *task) delete(api cdApi) error {
 	_, err := (*t.task).Delete(api.context)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "Error deleting containerd task")
 	}
 	t.state = deleted
 	return nil
