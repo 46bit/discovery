@@ -1,19 +1,9 @@
-package deployments
+package rainbow
 
 import (
 	"fmt"
-	"github.com/46bit/discovery/rainbow/containers"
+	"github.com/46bit/discovery/rainbow/executor"
 )
-
-// deployment:
-//   name: "senders-receiver"
-//   jobs:
-//   - name: "sender"
-//     remote: "docker.io/46bit/sender:latest"
-//     instances: 3
-//   - name: "receiver"
-//     remote: "docker.io/46bit/receiver:latest"
-//     instances: 1
 
 type Deployment struct {
 	Name string `json:"name"`
@@ -34,10 +24,10 @@ func (j *Job) ContainerID(instanceNumber uint) string {
 	return fmt.Sprintf("%s.%d", j.Name, instanceNumber)
 }
 
-func (j *Job) ContainerDescs(namespace string) []containers.ContainerDesc {
-	cs := []containers.ContainerDesc{}
+func (j *Job) ContainerDescs(namespace string) []executor.ContainerDesc {
+	cs := []executor.ContainerDesc{}
 	for i := uint(0); i < j.Instances; i++ {
-		cs = append(cs, containers.ContainerDesc{
+		cs = append(cs, executor.ContainerDesc{
 			ID:        j.ContainerID(i),
 			Remote:    j.Remote,
 			Namespace: namespace,

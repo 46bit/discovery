@@ -1,17 +1,17 @@
-package deployments
+package rainbow
 
 import (
-	"github.com/46bit/discovery/rainbow/containers"
+	"github.com/46bit/discovery/rainbow/executor"
 )
 
 type Deployer struct {
-	Runtime     *containers.Runtime
+	Runtime     *executor.Runtime
 	Deployments map[string]Deployment
 	Add         chan Deployment
 	Remove      chan string
 }
 
-func NewDeployer(runtime *containers.Runtime) *Deployer {
+func NewDeployer(runtime *executor.Runtime) *Deployer {
 	return &Deployer{
 		Runtime:     runtime,
 		Deployments: map[string]Deployment{},
@@ -36,9 +36,9 @@ func (d *Deployer) Run() {
 func (d *Deployer) add(name string) {
 	deployment := d.Deployments[name]
 	for _, job := range deployment.Jobs {
-		containers := job.ContainerDescs(deployment.Namespace())
-		for _, container := range containers {
-			d.Runtime.Add <- container
+		containerDescs := job.ContainerDescs(deployment.Namespace())
+		for _, containerDesc := range containerDescs {
+			d.Runtime.Add <- containerDesc
 		}
 	}
 }
@@ -46,9 +46,9 @@ func (d *Deployer) add(name string) {
 func (d *Deployer) remove(name string) {
 	deployment := d.Deployments[name]
 	for _, job := range deployment.Jobs {
-		containers := job.ContainerDescs(deployment.Namespace())
-		for _, container := range containers {
-			d.Runtime.Remove <- container.ID
+		containerDescs := job.ContainerDescs(deployment.Namespace())
+		for _, containerDesc := range containerDescs {
+			d.Runtime.Remove <- containerDesc.ID
 		}
 	}
 }

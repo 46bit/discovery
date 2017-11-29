@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/46bit/discovery/rainbow/containers"
-	"github.com/46bit/discovery/rainbow/deployments"
+	"github.com/46bit/discovery/rainbow"
+	"github.com/46bit/discovery/rainbow/executor"
 	cd "github.com/containerd/containerd"
 	"log"
 	"time"
@@ -15,10 +15,10 @@ func main() {
 	}
 	defer client.Close()
 
-	runtime := containers.NewRuntime(client)
+	runtime := executor.NewRuntime(client)
 	go runtime.Run()
 
-	depl := deployments.NewDeployer(runtime)
+	depl := rainbow.NewDeployer(runtime)
 	go depl.Run()
 
 	time.Sleep(2 * time.Second)
