@@ -4,7 +4,7 @@
 all:
 	@for NAME in $$(ls); do \
 		if [ -r "$${NAME}/main.go" ]; then \
-			NAME="$${NAME}" $(MAKE) container; \
+			$(MAKE) container NAME="$${NAME}"; \
 		fi;\
 	done
 
@@ -12,7 +12,7 @@ all:
 clean:
 	@for NAME in $$(ls); do \
 		if [ -r "$${NAME}/main.go" ]; then \
-			NAME="$${NAME}" $(MAKE) clean-container; \
+			$(MAKE) clean-container NAME="$${NAME}"; \
 		fi;\
 	done
 

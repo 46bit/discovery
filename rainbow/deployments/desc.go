@@ -2,7 +2,7 @@ package deployments
 
 import (
 	"fmt"
-	"github.com/46bit/discovery/deployer/containers"
+	"github.com/46bit/discovery/rainbow/containers"
 )
 
 // deployment:

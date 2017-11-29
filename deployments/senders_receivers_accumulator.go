@@ -2,9 +2,9 @@ package main
 
 import (
 	"fmt"
-	"github.com/46bit/discovery/deployer/containers"
-	"github.com/46bit/discovery/deployer/deployments"
-	"github.com/containerd/containerd"
+	"github.com/46bit/discovery/rainbow/containers"
+	"github.com/46bit/discovery/rainbow/deployments"
+	cd "github.com/containerd/containerd"
 	"log"
 	"math/rand"
 	"time"
@@ -13,7 +13,7 @@ import (
 func main() {
 	rand.Seed(time.Now().UnixNano())
 
-	client, err := containerd.New("/run/containerd/containerd.sock")
+	client, err := cd.New("/run/containerd/containerd.sock")
 	if err != nil {
 		log.Fatalln(err)
 	}

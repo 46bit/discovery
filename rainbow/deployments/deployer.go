@@ -1,7 +1,7 @@
 package deployments
 
 import (
-	"github.com/46bit/discovery/deployer/containers"
+	"github.com/46bit/discovery/rainbow/containers"
 )
 
 type Deployer struct {
