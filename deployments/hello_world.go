@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/46bit/discovery/rainbow/containers"
-	"github.com/46bit/discovery/rainbow/deployments"
+	"github.com/46bit/discovery/rainbow"
+	"github.com/46bit/discovery/rainbow/executor"
 	cd "github.com/containerd/containerd"
 	"log"
 	"math/rand"
@@ -18,15 +18,15 @@ func main() {
 	}
 	defer client.Close()
 
-	runtime := containers.NewRuntime(client)
+	runtime := executor.NewRuntime(client)
 	go runtime.Run()
 
-	depl := deployments.NewDeployer(runtime)
+	depl := rainbow.NewDeployer(runtime)
 	go depl.Run()
 
-	serviceDiscovery := deployments.Deployment{
+	serviceDiscovery := rainbow.Deployment{
 		Name: "hello-world",
-		Jobs: []deployments.Job{
+		Jobs: []rainbow.Job{
 			{
 				Name:      "hello-world",
 				Remote:    "docker.io/46bit/hello-world:latest",
