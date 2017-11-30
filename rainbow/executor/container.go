@@ -22,7 +22,7 @@ func newContainer(api cdApi, desc ContainerDesc) (*container, error) {
 }
 
 func (c *container) create(api cdApi) error {
-	image, err := api.client.Pull(api.context, c.desc.Remote)
+	image, err := api.client.Pull(api.context, c.desc.Remote, cd.WithPullUnpack)
 	if err != nil {
 		return errors.Wrap(err, "Error pulling image")
 	}
