@@ -46,7 +46,7 @@ func (r *Runtime) Run() {
 			if err != nil {
 				log.Printf("Remove error for container %s: %s", containerID, err)
 			}
-		case <-time.After(time.Second):
+		case <-time.After(100 * time.Millisecond):
 			err := r.runHealthchecks()
 			if err != nil {
 				log.Printf("Healthcheck error: %s", err)
@@ -58,22 +58,11 @@ func (r *Runtime) Run() {
 func (r *Runtime) runAdd(containerDesc ContainerDesc) error {
 	namespace := r.namespace(containerDesc.Namespace)
 	api := cdApi{client: r.client, context: namespace}
-
 	container, err := newContainer(api, containerDesc)
 	if err != nil {
 		return errors.Wrap(err, "Error creating new container")
 	}
 	r.containers[containerDesc.ID] = container
-
-	container.task, err = newTask(api, container.container)
-	if err != nil {
-		return errors.Wrap(err, "Error creating new task")
-	}
-	err = container.task.start(api)
-	if err != nil {
-		return errors.Wrap(err, "Error starting task")
-	}
-
 	return nil
 }
 
@@ -82,24 +71,38 @@ func (r *Runtime) runRemove(containerID string) error {
 	if !ok {
 		return errors.New("Container not found to remove")
 	}
+	delete(r.containers, containerID)
+
 	namespace := r.namespace(container.desc.Namespace)
 	api := cdApi{client: r.client, context: namespace}
-
-	err := container.task.stop(api)
+	err := container.delete(api)
 	if err != nil {
-		return errors.Wrap(err, "Error stopping task")
+		return err
 	}
-	err = container.task.delete(api)
-	if err != nil {
-		return errors.Wrap(err, "Error deleting task")
-	}
-	container.task = nil
 
 	return nil
 }
 
 func (r *Runtime) runHealthchecks() error {
-	// Poll all containers for status
+	for _, container := range r.containers {
+		namespace := r.namespace(container.desc.Namespace)
+		if container.task != nil {
+			status, err := (*container.task.task).Status(namespace)
+			if err != nil {
+				return err
+			}
+			if status.Status != cd.Created && status.Status != cd.Running {
+				container.task.state = stopped
+			}
+		}
+
+		api := cdApi{client: r.client, context: namespace}
+		err := transition(api, container)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
