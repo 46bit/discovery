@@ -10,7 +10,7 @@ type container struct {
 	desc      ContainerDesc
 	state     state
 	container *cd.Container
-	task      *task
+	task      task
 }
 
 func newContainer(api cdApi, desc ContainerDesc) (*container, error) {

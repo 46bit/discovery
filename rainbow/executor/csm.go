@@ -1,25 +1,15 @@
 package executor
 
-func transition(api cdApi, container *container) error {
-	if container.task == nil {
-		task, err := newTask(api, container.container)
-		if err != nil {
-			return err
-		}
-		container.task = task
-	} else {
-		if container.task.state == created {
-			if err := container.task.start(api); err != nil {
-				return err
-			}
-		} else if container.task.state == stopped {
-			if err := container.task.delete(api); err != nil {
-				return err
-			}
-			container.task = nil
-		} else {
-			return nil
-		}
+func transition(api cdApi, c *container) error {
+	var err error
+	switch c.task.state {
+	case unspecified, deleted:
+		err = c.task.create(api, c.container)
+	case created:
+		err = c.task.start(api)
+	case stopped:
+		err = c.task.delete(api)
+	case started:
 	}
-	return nil
+	return err
 }

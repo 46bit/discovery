@@ -75,9 +75,14 @@ func (r *Runtime) runRemove(containerID string) error {
 
 	namespace := r.namespace(container.desc.Namespace)
 	api := cdApi{client: r.client, context: namespace}
-	err := container.delete(api)
-	if err != nil {
-		return err
+	if container.task.state == started {
+		container.task.stop(api)
+	}
+	if container.task.state == created || container.task.state == stopped {
+		container.task.delete(api)
+	}
+	if container.state == created {
+		container.delete(api)
 	}
 
 	return nil
@@ -86,7 +91,7 @@ func (r *Runtime) runRemove(containerID string) error {
 func (r *Runtime) runHealthchecks() error {
 	for _, container := range r.containers {
 		namespace := r.namespace(container.desc.Namespace)
-		if container.task != nil {
+		if container.task.state == started {
 			status, err := (*container.task.task).Status(namespace)
 			if err != nil {
 				return err
