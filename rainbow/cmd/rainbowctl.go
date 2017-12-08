@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/46bit/discovery/rainbow"
 	"github.com/46bit/discovery/rainbow/executor"
+	"github.com/46bit/discovery/rainbow/operator"
 	cd "github.com/containerd/containerd"
 	"log"
 	"time"
@@ -15,11 +15,11 @@ func main() {
 	}
 	defer client.Close()
 
-	runtime := executor.NewRuntime(client)
-	go runtime.Run()
+	exec := executor.NewExecutor(client)
+	go exec.Run()
 
-	depl := rainbow.NewDeployer(runtime)
-	go depl.Run()
+	op := operator.NewOperator(exec.CmdChan, exec.EventChan)
+	go op.Run()
 
 	time.Sleep(2 * time.Second)
 }
