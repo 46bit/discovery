@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/46bit/discovery/rainbow"
 	"github.com/46bit/discovery/rainbow/executor"
+	"github.com/46bit/discovery/rainbow/operator"
 	cd "github.com/containerd/containerd"
 	"log"
 	"math/rand"
@@ -18,25 +19,25 @@ func main() {
 	}
 	defer client.Close()
 
-	runtime := executor.NewRuntime(client)
-	go runtime.Run()
+	exec := executor.NewExecutor(client)
+	go exec.Run()
 
-	depl := rainbow.NewDeployer(runtime)
-	go depl.Run()
+	op := operator.NewOperator(exec.CmdChan, exec.EventChan)
+	go op.Run()
 
 	serviceDiscovery := rainbow.Deployment{
 		Name: "hello-world",
 		Jobs: []rainbow.Job{
 			{
-				Name:      "hello-world",
-				Remote:    "docker.io/46bit/hello-world:latest",
-				Instances: 1,
+				Name:          "hello-world",
+				Remote:        "docker.io/46bit/hello-world:latest",
+				InstanceCount: 1,
 			},
 		},
 	}
-	depl.Add <- serviceDiscovery
+	op.Add(serviceDiscovery)
 	time.Sleep(time.Minute)
 
-	depl.Remove <- serviceDiscovery.Name
+	op.Remove(serviceDiscovery.Name)
 	time.Sleep(10 * time.Second)
 }
