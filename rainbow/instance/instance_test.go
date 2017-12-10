@@ -33,7 +33,9 @@ var _ = Describe("Instance", func() {
 	})
 
 	AfterEach(func() {
-		instance1.Delete()
+		if instance1.Status() == instance.Created {
+			instance1.Delete()
+		}
 		client.Close()
 	})
 
@@ -42,6 +44,19 @@ var _ = Describe("Instance", func() {
 			err := instance1.Create(client)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(instance1.Status()).To(Equal(instance.Created))
+		})
+
+		It("fails if providing an invalid remote", func() {
+			i := instance.NewInstance(namespace, rainbow.Instance{
+				Index:          0,
+				Remote:         "docker.io/46bit/does-not-exist:latest",
+				JobName:        "does-not-exist",
+				DeploymentName: "instance_test",
+			})
+			Expect(i.Status()).To(Equal(instance.Described))
+			err := i.Create(client)
+			Expect(err).To(HaveOccurred())
+			Expect(i.Status()).To(Equal(instance.Described))
 		})
 	})
 })

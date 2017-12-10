@@ -36,7 +36,7 @@ func (o *Operator) Run() {
 func (o *Operator) Add(deployment rainbow.Deployment) {
 	o.Deployments[deployment.Name] = deployment
 	for _, instance := range deployment.Instances() {
-		o.CmdChan <- executor.NewExecuteCmd(NAMESPACE, instance)
+		o.CmdChan <- executor.NewExecuteCmd(NAMESPACE, instance.ID(), instance.Remote)
 	}
 }
 

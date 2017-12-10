@@ -34,11 +34,10 @@ func (e *Executor) Run() {
 }
 
 func (e *Executor) execute(c CmdExecute) {
-	instanceID := c.Instance.ID()
-	e.instances[instanceID] = instance.NewInstance(c.Namespace, c.Instance)
-	e.instances[instanceID].Create(e.client)
-	e.instances[instanceID].Task()
-	e.instances[instanceID].Start()
+	e.instances[c.InstanceID] = instance.NewInstance(c.Namespace, c.InstanceID, c.InstanceRemote)
+	e.instances[c.InstanceID].Create(e.client)
+	e.instances[c.InstanceID].Task()
+	e.instances[c.InstanceID].Start()
 	e.EventChan <- NewStartEvent(c.Namespace, instanceID)
 }
 

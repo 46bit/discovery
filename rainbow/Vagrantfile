@@ -1,0 +1,73 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure("2") do |config|
+  config.vm.box = "ubuntu/xenial64"
+
+  # config.vm.network "forwarded_port", guest: 80, host: 8080
+  # config.vm.network "forwarded_port", guest: 80, host: 8080, host_ip: "127.0.0.1"
+  # config.vm.network "private_network", ip: "192.168.33.10"
+  # config.vm.network "public_network"
+
+  # Share an additional folder to the guest VM. The first argument is
+  # the path on the host to the actual folder. The second argument is
+  # the path on the guest to mount the folder. And the optional third
+  # argument is a set of non-required options.
+  config.vm.synced_folder "..", "/discovery"
+
+  config.vm.provider "virtualbox" do |vb|
+    vb.memory = "1536"
+  end
+  #
+
+  # Enable provisioning with a shell script. Additional provisioners such as
+  # Puppet, Chef, Ansible, Salt, and Docker are also available. Please see the
+  # documentation for more information about their specific syntax and use.
+  config.vm.provision "shell", privileged: false, inline: <<-SHELL
+    sudo apt-get update -yqq
+    sudo apt-get upgrade -yqq
+
+    # DOCKER INSTALLATION
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+    sudo add-apt-repository -y \
+       "deb [arch=amd64] https://download.docker.com/linux/ubuntu \
+       $(lsb_release -cs) \
+       stable"
+    sudo apt-get update -yqq
+    sudo apt-get install -yqq docker-ce
+
+    # GOLANG INSTALLATION
+    sudo add-apt-repository -y ppa:gophers/archive
+    sudo apt-get update -yqq
+    sudo apt-get install -yqq golang-1.9-go
+    mkdir ~/go
+    echo 'export GOPATH="$HOME/go"' >> ~/.bashrc
+    echo 'export PATH="$HOME/go/bin:/usr/lib/go-1.9/bin:$PATH"' >> ~/.bashrc
+    export GOPATH="$HOME/go"
+    export PATH="$HOME/go/bin:/usr/lib/go-1.9/bin:$PATH"
+    go version
+    mkdir -p ~/go/src/github.com/46bit
+    ln -s /discovery ~/go/src/github.com/46bit/discovery
+    go get github.com/onsi/ginkgo/ginkgo
+
+    # PROTOCOL BUFFERS INSTALLATION
+    sudo apt-get install -yqq unzip
+    wget -nvc https://github.com/google/protobuf/releases/download/v3.1.0/protoc-3.1.0-linux-x86_64.zip
+    sudo unzip protoc-3.1.0-linux-x86_64.zip -d /usr/local
+
+    # RUNC INSTALLATION
+    # Use revision from https://github.com/containerd/containerd/blob/master/RUNC.md
+    sudo apt-get install -yqq libseccomp-dev
+    go get github.com/opencontainers/runc
+    cd $GOPATH/src/github.com/opencontainers/runc
+    git checkout 74a17296470088de3805e138d3d87c62e613dfc4
+    make
+    sudo make install
+
+    # CONTAINERD INSTALLATION
+    # Use latest release from https://github.com/containerd/containerd/releases
+    wget -nv https://github.com/containerd/containerd/releases/download/v1.0.0-beta.3/containerd-1.0.0-beta.3.linux-amd64.tar.gz
+    tar xf containerd-1.0.0-beta.3.linux-amd64.tar.gz
+    sudo cp bin/* /usr/local/bin
+  SHELL
+end

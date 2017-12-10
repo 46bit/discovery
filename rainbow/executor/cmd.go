@@ -1,9 +1,5 @@
 package executor
 
-import (
-	"github.com/46bit/discovery/rainbow"
-)
-
 type CmdVariant uint
 
 const (
@@ -17,10 +13,10 @@ type Cmd struct {
 	Kill    *CmdKill    `json:"kill"`
 }
 
-func NewExecuteCmd(namespace string, instance rainbow.Instance) Cmd {
+func NewExecuteCmd(namespace, instanceID, instanceRemote string) Cmd {
 	return Cmd{
 		Variant: CmdExecuteVariant,
-		Execute: &CmdExecute{Namespace: namespace, Instance: instance},
+		Execute: &CmdExecute{Namespace: namespace, InstanceID: instanceID, InstanceRemote: instanceRemote},
 	}
 }
 
@@ -32,8 +28,9 @@ func NewKillCmd(namespace, instanceID string) Cmd {
 }
 
 type CmdExecute struct {
-	Namespace string           `json:"namespace"`
-	Instance  rainbow.Instance `json:"instance"`
+	Namespace      string `json:"namespace"`
+	InstanceID     string `json:"instance_id"`
+	InstanceRemote string `json:"instance_remote"`
 }
 
 type CmdKill struct {
