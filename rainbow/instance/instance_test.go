@@ -1,7 +1,6 @@
 package instance_test
 
 import (
-	"github.com/46bit/discovery/rainbow"
 	"github.com/46bit/discovery/rainbow/instance"
 	"github.com/containerd/containerd"
 	. "github.com/onsi/ginkgo"
@@ -23,7 +22,7 @@ var _ = Describe("Instance", func() {
 		client, err = containerd.New("/run/containerd/containerd.sock")
 		Expect(err).ToNot(HaveOccurred())
 
-		instance1 = instance.NewInstance(namespace, "instance_test.hello-world.0", "docker.io/46bit/hello-world:latest")
+		instance1 = instance.NewInstance(namespace, "instance_test", "docker.io/46bit/hello-world:latest")
 		Expect(instance1.Status()).To(Equal(instance.Described))
 	})
 
@@ -42,12 +41,7 @@ var _ = Describe("Instance", func() {
 		})
 
 		It("fails if providing an invalid remote", func() {
-			i := instance.NewInstance(namespace, rainbow.Instance{
-				Index:          0,
-				Remote:         "docker.io/46bit/does-not-exist:latest",
-				JobName:        "does-not-exist",
-				DeploymentName: "instance_test",
-			})
+			i := instance.NewInstance(namespace, "instance_test", "docker.io/46bit/does-not-exist:latest")
 			Expect(i.Status()).To(Equal(instance.Described))
 			err := i.Create(client)
 			Expect(err).To(HaveOccurred())

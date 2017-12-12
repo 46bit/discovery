@@ -23,6 +23,12 @@ cmd-env:
 clean: ## remove binary artifacts
 	rm -rf bin
 
+.PHONY: test
+test: $(GOPATH)/bin/ginkgo ## run tests
+	ginkgo -r
+$(GOPATH)/bin/ginkgo:
+	cd ../vendor/github.com/onsi/ginkgo/ginkgo && go install .
+
 .PHONY: help
 help:
 	@awk -F":.*## " '$$2&&$$1~/^[a-zA-Z_%-]+/{printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
