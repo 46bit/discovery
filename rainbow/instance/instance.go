@@ -79,15 +79,20 @@ func (i *Instance) Task() error {
 	return nil
 }
 
-func (i *Instance) Start() error {
+func (i *Instance) Start() (<-chan containerd.ExitStatus, error) {
 	i.Lock()
 	defer i.Unlock()
-	err := (*i.task).Start(i.context())
+	ctx := i.context()
+	exitStatusC, err := (*i.task).Wait(ctx)
 	if err != nil {
-		return errors.Wrap(err, "Error starting containerd task")
+		return nil, errors.Wrap(err, "Error waiting for containerd task")
+	}
+	err = (*i.task).Start(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "Error starting containerd task")
 	}
 	i.State = Started
-	return nil
+	return exitStatusC, nil
 }
 
 func (i *Instance) Stop() error {
