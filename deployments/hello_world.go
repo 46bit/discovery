@@ -25,7 +25,7 @@ func main() {
 	op := operator.NewOperator(exec.CmdChan, exec.EventChan)
 	go op.Run()
 
-	serviceDiscovery := rainbow.Deployment{
+	helloWorld := rainbow.Deployment{
 		Name: "hello-world",
 		Jobs: []rainbow.Job{
 			{
@@ -35,9 +35,9 @@ func main() {
 			},
 		},
 	}
-	op.Add(serviceDiscovery)
+	op.Add(helloWorld)
 	time.Sleep(time.Minute)
 
-	op.Remove(serviceDiscovery.Name)
+	op.Remove(helloWorld.Name)
 	time.Sleep(10 * time.Second)
 }
