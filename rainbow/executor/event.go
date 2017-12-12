@@ -13,17 +13,17 @@ type Event struct {
 	Stop    *EventStop   `json:"stop"`
 }
 
-func NewStartEvent(namespace string, instanceID string) Event {
+func NewStartEvent(namespace, instanceID string) Event {
 	return Event{
 		Variant: EventStartVariant,
 		Start:   &EventStart{Namespace: namespace, InstanceID: instanceID},
 	}
 }
 
-func NewStopEvent(namespace string, instanceID string) Event {
+func NewStopEvent(namespace, instanceID, instanceRemote string) Event {
 	return Event{
 		Variant: EventStopVariant,
-		Stop:    &EventStop{Namespace: namespace, InstanceID: instanceID},
+		Stop:    &EventStop{Namespace: namespace, InstanceID: instanceID, InstanceRemote: instanceRemote},
 	}
 }
 
@@ -33,6 +33,7 @@ type EventStart struct {
 }
 
 type EventStop struct {
-	Namespace  string `json:"namespace"`
-	InstanceID string `json:"instance_id"`
+	Namespace      string `json:"namespace"`
+	InstanceID     string `json:"instance_id"`
+	InstanceRemote string `json:"instance_remote"`
 }
