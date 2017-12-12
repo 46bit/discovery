@@ -65,8 +65,9 @@ func (e *Executor) remove(namespace, instanceID string) {
 	}
 	e.instances[instanceID].Untask()
 	e.instances[instanceID].Delete()
+	instanceRemote := e.instances[instanceID].Remote
 	delete(e.instances, instanceID)
-	e.EventChan <- NewStopEvent(namespace, instanceID, e.instances[instanceID].Remote)
+	e.EventChan <- NewStopEvent(namespace, instanceID, instanceRemote)
 }
 
 // func (e *containerExecutor) runTowardsStarted(client *cd.Client) error {
