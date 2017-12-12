@@ -24,10 +24,10 @@ const (
 )
 
 type Instance struct {
-	namespace string
-	id        string
-	remote    string
-	state     State
+	Namespace string
+	ID        string
+	Remote    string
+	State     State
 	container *containerd.Container
 	task      *containerd.Task
 	sync.Mutex
@@ -35,10 +35,10 @@ type Instance struct {
 
 func NewInstance(namespace, id, remote string) *Instance {
 	return &Instance{
-		namespace: namespace,
-		id:        id,
-		remote:    remote,
-		state:     Described,
+		Namespace: namespace,
+		ID:        id,
+		Remote:    remote,
+		State:     Described,
 	}
 }
 
@@ -46,7 +46,7 @@ func (i *Instance) Create(client *containerd.Client) error {
 	i.Lock()
 	defer i.Unlock()
 	ctx := i.context()
-	image, err := client.Pull(ctx, i.remote, containerd.WithPullUnpack)
+	image, err := client.Pull(ctx, i.Remote, containerd.WithPullUnpack)
 	if err != nil {
 		return errors.Wrap(err, "Error pulling image")
 	}
@@ -54,15 +54,15 @@ func (i *Instance) Create(client *containerd.Client) error {
 	withHostNamespace := containerd.WithHostNamespace(specs.NetworkNamespace)
 	container, err := client.NewContainer(
 		ctx,
-		i.id,
+		i.ID,
 		containerd.WithImage(image),
-		containerd.WithNewSnapshot("snapshot-"+i.id, image),
+		containerd.WithNewSnapshot("snapshot-"+i.ID, image),
 		containerd.WithNewSpec(imageConfig, withHostNamespace),
 	)
 	if err != nil {
 		return errors.Wrap(err, "Error creating new container")
 	}
-	i.state = Created
+	i.State = Created
 	i.container = &container
 	return nil
 }
@@ -74,7 +74,7 @@ func (i *Instance) Task() error {
 	if err != nil {
 		return errors.Wrap(err, "Error creating containerd task")
 	}
-	i.state = Tasked
+	i.State = Tasked
 	i.task = &task
 	return nil
 }
@@ -86,7 +86,7 @@ func (i *Instance) Start() error {
 	if err != nil {
 		return errors.Wrap(err, "Error starting containerd task")
 	}
-	i.state = Started
+	i.State = Started
 	return nil
 }
 
@@ -111,7 +111,7 @@ func (i *Instance) Stop() error {
 		}
 		<-exitStatusC
 	}
-	i.state = Stopped
+	i.State = Stopped
 	return nil
 }
 
@@ -122,7 +122,7 @@ func (i *Instance) Untask() error {
 	if err != nil {
 		return errors.Wrap(err, "Error deleting containerd task")
 	}
-	i.state = Untasked
+	i.State = Untasked
 	i.task = nil
 	return nil
 }
@@ -134,7 +134,7 @@ func (i *Instance) Delete() error {
 	if err != nil {
 		return errors.Wrap(err, "Error deleting container")
 	}
-	i.state = Deleted
+	i.State = Deleted
 	i.container = nil
 	return nil
 }
@@ -142,15 +142,15 @@ func (i *Instance) Delete() error {
 func (i *Instance) Status() State {
 	i.Lock()
 	defer i.Unlock()
-	if i.state == Started {
+	if i.State == Started {
 		status, err := (*i.task).Status(i.context())
 		if err == nil && status.Status != containerd.Running {
-			i.state = Stopped
+			i.State = Stopped
 		}
 	}
-	return i.state
+	return i.State
 }
 
 func (i *Instance) context() context.Context {
-	return namespaces.WithNamespace(context.Background(), i.namespace)
+	return namespaces.WithNamespace(context.Background(), i.Namespace)
 }

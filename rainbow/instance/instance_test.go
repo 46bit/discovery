@@ -5,6 +5,7 @@ import (
 	"github.com/containerd/containerd"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/pkg/errors"
 )
 
 var _ = Describe("Instance", func() {
@@ -41,11 +42,32 @@ var _ = Describe("Instance", func() {
 		})
 
 		It("fails if providing an invalid remote", func() {
-			i := instance.NewInstance(namespace, "instance_test", "docker.io/46bit/does-not-exist:latest")
-			Expect(i.Status()).To(Equal(instance.Described))
-			err := i.Create(client)
+			instance1.Remote = "docker.io/46bit/does-not-exist:latest"
+			err := instance1.Create(client)
 			Expect(err).To(HaveOccurred())
-			Expect(i.Status()).To(Equal(instance.Described))
+			Expect(errors.Cause(err).Error()).To(Equal("authorization failed"))
+			Expect(instance1.Status()).To(Equal(instance.Described))
+		})
+	})
+
+	Context("Delete", func() {
+		BeforeEach(func() {
+			err := instance1.Create(client)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(instance1.Status()).To(Equal(instance.Created))
+		})
+
+		It("succeeds", func() {
+			err := instance1.Delete()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(instance1.Status()).To(Equal(instance.Deleted))
+		})
+
+		It("allows an instance to be recreated", func() {
+			instance1.Delete()
+			err := instance1.Create(client)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(instance1.Status()).To(Equal(instance.Created))
 		})
 	})
 })
