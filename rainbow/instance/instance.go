@@ -2,7 +2,6 @@ package instance
 
 import (
 	"context"
-	"github.com/46bit/discovery/rainbow"
 	"github.com/containerd/containerd"
 	"github.com/containerd/containerd/namespaces"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
@@ -26,17 +25,19 @@ const (
 
 type Instance struct {
 	namespace string
-	desc      rainbow.Instance
+	id        string
+	remote    string
 	state     State
 	container *containerd.Container
 	task      *containerd.Task
 	sync.Mutex
 }
 
-func NewInstance(namespace string, desc rainbow.Instance) *Instance {
+func NewInstance(namespace, id, remote string) *Instance {
 	return &Instance{
 		namespace: namespace,
-		desc:      desc,
+		id:        id,
+		remote:    remote,
 		state:     Described,
 	}
 }
@@ -45,7 +46,7 @@ func (i *Instance) Create(client *containerd.Client) error {
 	i.Lock()
 	defer i.Unlock()
 	ctx := i.context()
-	image, err := client.Pull(ctx, i.desc.Remote, containerd.WithPullUnpack)
+	image, err := client.Pull(ctx, i.remote, containerd.WithPullUnpack)
 	if err != nil {
 		return errors.Wrap(err, "Error pulling image")
 	}
@@ -53,9 +54,9 @@ func (i *Instance) Create(client *containerd.Client) error {
 	withHostNamespace := containerd.WithHostNamespace(specs.NetworkNamespace)
 	container, err := client.NewContainer(
 		ctx,
-		i.desc.ID(),
+		i.id,
 		containerd.WithImage(image),
-		containerd.WithNewSnapshot("snapshot-"+i.desc.ID(), image),
+		containerd.WithNewSnapshot("snapshot-"+i.id, image),
 		containerd.WithNewSpec(imageConfig, withHostNamespace),
 	)
 	if err != nil {

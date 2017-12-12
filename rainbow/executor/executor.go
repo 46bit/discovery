@@ -38,7 +38,7 @@ func (e *Executor) execute(c CmdExecute) {
 	e.instances[c.InstanceID].Create(e.client)
 	e.instances[c.InstanceID].Task()
 	e.instances[c.InstanceID].Start()
-	e.EventChan <- NewStartEvent(c.Namespace, instanceID)
+	e.EventChan <- NewStartEvent(c.Namespace, c.InstanceID)
 }
 
 func (e *Executor) kill(c CmdKill) {

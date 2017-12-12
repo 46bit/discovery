@@ -23,12 +23,7 @@ var _ = Describe("Instance", func() {
 		client, err = containerd.New("/run/containerd/containerd.sock")
 		Expect(err).ToNot(HaveOccurred())
 
-		instance1 = instance.NewInstance(namespace, rainbow.Instance{
-			Index:          0,
-			Remote:         "docker.io/46bit/hello-world:latest",
-			JobName:        "hello-world",
-			DeploymentName: "instance_test",
-		})
+		instance1 = instance.NewInstance(namespace, "instance_test.hello-world.0", "docker.io/46bit/hello-world:latest")
 		Expect(instance1.Status()).To(Equal(instance.Described))
 	})
 
