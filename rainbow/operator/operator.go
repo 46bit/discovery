@@ -3,6 +3,7 @@ package operator
 import (
 	"github.com/46bit/discovery/rainbow"
 	"github.com/46bit/discovery/rainbow/executor"
+	"github.com/davecgh/go-spew/spew"
 	"log"
 	"time"
 )
@@ -31,7 +32,7 @@ func (o *Operator) Run() {
 	for {
 		select {
 		case event := <-o.EventChan:
-			log.Println(event)
+			log.Printf("event received by operator: %s\n", spew.Sdump(event))
 			if event.Variant == executor.EventStopVariant {
 				// Resume containers only if their deployment is still registered.
 				if _, ok := o.instanceDeployments[event.Stop.InstanceID]; ok {
