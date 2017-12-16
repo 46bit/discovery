@@ -9,10 +9,6 @@ import (
 )
 
 var _ = Describe("Instance", func() {
-	const (
-		namespace = "default"
-	)
-
 	var (
 		client     *containerd.Client
 		container1 *container.Container
@@ -23,7 +19,7 @@ var _ = Describe("Instance", func() {
 		client, err = containerd.New("/run/containerd/containerd.sock")
 		Expect(err).ToNot(HaveOccurred())
 
-		container1 = container.NewInstance(namespace, "container_test", "docker.io/46bit/hello-world:latest")
+		container1 = container.NewInstance("container_test", "docker.io/46bit/hello-world:latest")
 		Expect(container1.Status()).To(Equal(container.Described))
 	})
 

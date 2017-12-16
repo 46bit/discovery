@@ -11,6 +11,10 @@ import (
 	"time"
 )
 
+const (
+	namespace = "default"
+)
+
 type State uint
 
 const (
@@ -24,7 +28,6 @@ const (
 )
 
 type Container struct {
-	Namespace string
 	ID        string
 	Remote    string
 	State     State
@@ -33,12 +36,11 @@ type Container struct {
 	sync.Mutex
 }
 
-func NewContainer(namespace, id, remote string) *Container {
+func NewContainer(id, remote string) *Container {
 	return &Container{
-		Namespace: namespace,
-		ID:        id,
-		Remote:    remote,
-		State:     Described,
+		ID:     id,
+		Remote: remote,
+		State:  Described,
 	}
 }
 
@@ -157,5 +159,5 @@ func (c *Container) Status() State {
 }
 
 func (c *Container) context() context.Context {
-	return namespaces.WithNamespace(context.Background(), c.Namespace)
+	return namespaces.WithNamespace(context.Background(), namespace)
 }

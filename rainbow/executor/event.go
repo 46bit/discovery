@@ -8,32 +8,30 @@ const (
 )
 
 type Event struct {
-	Variant EventVariant `json:"variant"`
-	Start   *EventStart  `json:"start"`
-	Stop    *EventStop   `json:"stop"`
+	Variant EventVariant
+	Start   *EventStart
+	Stop    *EventStop
 }
 
-func NewStartEvent(namespace, instanceID string) Event {
+func NewStartEvent(id string) Event {
 	return Event{
 		Variant: EventStartVariant,
-		Start:   &EventStart{Namespace: namespace, InstanceID: instanceID},
+		Start:   &EventStart{ID: id},
 	}
 }
 
-func NewStopEvent(namespace, instanceID, instanceRemote string) Event {
+func NewStopEvent(id, remote string) Event {
 	return Event{
 		Variant: EventStopVariant,
-		Stop:    &EventStop{Namespace: namespace, InstanceID: instanceID, InstanceRemote: instanceRemote},
+		Stop:    &EventStop{ID: id, Remote: remote},
 	}
 }
 
 type EventStart struct {
-	Namespace  string `json:"namespace"`
-	InstanceID string `json:"instance_id"`
+	ID string
 }
 
 type EventStop struct {
-	Namespace      string `json:"namespace"`
-	InstanceID     string `json:"instance_id"`
-	InstanceRemote string `json:"instance_remote"`
+	ID     string
+	Remote string
 }

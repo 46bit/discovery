@@ -7,10 +7,6 @@ import (
 	"time"
 )
 
-const (
-	namespace = "default"
-)
-
 type Operator struct {
 	CmdChan     chan<- executor.Cmd
 	EventChan   <-chan executor.Event
@@ -33,14 +29,14 @@ func (o *Operator) Run() {
 		case event := <-o.EventChan:
 			log.Printf("event received by operator: %s\n", spew.Sdump(event))
 			if event.Variant == executor.EventStartVariant {
-				if i, ok := o.Instances[event.Start.InstanceID]; ok {
+				if i, ok := o.Instances[event.Start.ID]; ok {
 					i.State = InstanceStarted
 				}
 			} else if event.Variant == executor.EventStopVariant {
 				// Resume containers only if their deployment is still registered.
-				if i, ok := o.Instances[event.Stop.InstanceID]; ok {
+				if i, ok := o.Instances[event.Stop.ID]; ok {
 					i.State = InstanceStopped
-					cmd := executor.NewExecuteCmd(namespace, event.Stop.InstanceID, event.Stop.InstanceRemote)
+					cmd := executor.NewExecuteCmd(event.Stop.ID, event.Stop.Remote)
 					// Executor does not properly handle starting to execute something before it is
 					// entirely deleted. Until this behaviour is more solid, this hackily delays the
 					// re-execute command.
@@ -58,7 +54,7 @@ func (o *Operator) Add(deployment Deployment) {
 	o.Deployments[deployment.Name] = deployment
 	for _, jobInstances := range deployment.Instances() {
 		for _, i := range jobInstances {
-			o.CmdChan <- executor.NewExecuteCmd(namespace, i.ID, i.Remote)
+			o.CmdChan <- executor.NewExecuteCmd(i.ID, i.Remote)
 			o.Instances[i.ID] = i
 		}
 	}
@@ -75,7 +71,7 @@ func (o *Operator) Remove(name string) {
 	}
 	for _, jobInstances := range deployment.Instances() {
 		for _, i := range jobInstances {
-			o.CmdChan <- executor.NewKillCmd(namespace, i.ID)
+			o.CmdChan <- executor.NewKillCmd(i.ID)
 		}
 	}
 }

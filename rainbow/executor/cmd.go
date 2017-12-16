@@ -8,32 +8,30 @@ const (
 )
 
 type Cmd struct {
-	Variant CmdVariant  `json:"variant"`
-	Execute *CmdExecute `json:"execute"`
-	Kill    *CmdKill    `json:"kill"`
+	Variant CmdVariant
+	Execute *CmdExecute
+	Kill    *CmdKill
 }
 
-func NewExecuteCmd(namespace, instanceID, instanceRemote string) Cmd {
+func NewExecuteCmd(id, remote string) Cmd {
 	return Cmd{
 		Variant: CmdExecuteVariant,
-		Execute: &CmdExecute{Namespace: namespace, InstanceID: instanceID, InstanceRemote: instanceRemote},
+		Execute: &CmdExecute{ID: id, Remote: remote},
 	}
 }
 
-func NewKillCmd(namespace, instanceID string) Cmd {
+func NewKillCmd(id string) Cmd {
 	return Cmd{
 		Variant: CmdKillVariant,
-		Kill:    &CmdKill{Namespace: namespace, InstanceID: instanceID},
+		Kill:    &CmdKill{ID: id},
 	}
 }
 
 type CmdExecute struct {
-	Namespace      string `json:"namespace"`
-	InstanceID     string `json:"instance_id"`
-	InstanceRemote string `json:"instance_remote"`
+	ID     string
+	Remote string
 }
 
 type CmdKill struct {
-	Namespace  string `json:"namespace"`
-	InstanceID string `json:"instance_id"`
+	ID string
 }

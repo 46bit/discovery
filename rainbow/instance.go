@@ -41,14 +41,3 @@ func NewInstance(deploymentName, jobName string, index uint, remote string) Inst
 		State:        InstanceStopped,
 	}
 }
-
-type Instances struct {
-}
-
-func (i *Instances) AddDeployment() {}
-
-func (i *Instances) RemoveDeployment() {}
-
-func (i *Instances) GetByDeployment() {}
-
-func (i *Instances) GetByID() {}
