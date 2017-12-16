@@ -1,25 +1,25 @@
 package executor
 
 import (
-	"github.com/46bit/discovery/rainbow/instance"
+	"github.com/46bit/discovery/rainbow/container"
 	"github.com/containerd/containerd"
 )
 
 type Executor struct {
-	CmdChan   chan Cmd
-	EventChan chan Event
-	exitChan  chan string
-	client    *containerd.Client
-	instances map[string]*instance.Instance
+	CmdChan    chan Cmd
+	EventChan  chan Event
+	exitChan   chan string
+	client     *containerd.Client
+	containers map[string]*container.Container
 }
 
 func NewExecutor(client *containerd.Client) *Executor {
 	return &Executor{
-		CmdChan:   make(chan Cmd),
-		EventChan: make(chan Event),
-		exitChan:  make(chan string),
-		client:    client,
-		instances: map[string]*instance.Instance{},
+		CmdChan:    make(chan Cmd),
+		EventChan:  make(chan Event),
+		exitChan:   make(chan string),
+		client:     client,
+		containers: map[string]*container.Container{},
 	}
 }
 
@@ -34,40 +34,40 @@ func (e *Executor) Run() {
 				e.kill(command.Kill.InstanceID)
 			}
 		case exitedInstanceID := <-e.exitChan:
-			exitedInstance := e.instances[exitedInstanceID]
+			exitedInstance := e.containers[exitedInstanceID]
 			e.remove(exitedInstance.Namespace, exitedInstanceID)
 		}
 	}
 }
 
-func (e *Executor) execute(namespace, instanceID, instanceRemote string) {
-	e.instances[instanceID] = instance.NewInstance(namespace, instanceID, instanceRemote)
-	e.instances[instanceID].Create(e.client)
-	e.instances[instanceID].Task()
-	instanceExitChan, _ := e.instances[instanceID].Start()
-	go func(instanceID string, instanceExitChan <-chan containerd.ExitStatus, exitChan chan<- string) {
-		<-instanceExitChan
-		exitChan <- instanceID
-	}(instanceID, instanceExitChan, e.exitChan)
-	e.EventChan <- NewStartEvent(namespace, instanceID)
+func (e *Executor) execute(namespace, containerID, containerRemote string) {
+	e.containers[containerID] = container.NewContainer(namespace, containerID, containerRemote)
+	e.containers[containerID].Create(e.client)
+	e.containers[containerID].Task()
+	containerExitChan, _ := e.containers[containerID].Start()
+	go func(containerID string, containerExitChan <-chan containerd.ExitStatus, exitChan chan<- string) {
+		<-containerExitChan
+		exitChan <- containerID
+	}(containerID, containerExitChan, e.exitChan)
+	e.EventChan <- NewStartEvent(namespace, containerID)
 }
 
-func (e *Executor) kill(instanceID string) {
-	if _, ok := e.instances[instanceID]; !ok {
+func (e *Executor) kill(containerID string) {
+	if _, ok := e.containers[containerID]; !ok {
 		return
 	}
-	e.instances[instanceID].Stop()
+	e.containers[containerID].Stop()
 }
 
-func (e *Executor) remove(namespace, instanceID string) {
-	if _, ok := e.instances[instanceID]; !ok {
+func (e *Executor) remove(namespace, containerID string) {
+	if _, ok := e.containers[containerID]; !ok {
 		return
 	}
-	e.instances[instanceID].Untask()
-	e.instances[instanceID].Delete()
-	instanceRemote := e.instances[instanceID].Remote
-	delete(e.instances, instanceID)
-	e.EventChan <- NewStopEvent(namespace, instanceID, instanceRemote)
+	e.containers[containerID].Untask()
+	e.containers[containerID].Delete()
+	containerRemote := e.containers[containerID].Remote
+	delete(e.containers, containerID)
+	e.EventChan <- NewStopEvent(namespace, containerID, containerRemote)
 }
 
 // func (e *containerExecutor) runTowardsStarted(client *cd.Client) error {

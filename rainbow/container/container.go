@@ -1,4 +1,4 @@
-package instance
+package container
 
 import (
 	"context"
@@ -23,7 +23,7 @@ const (
 	Deleted
 )
 
-type Instance struct {
+type Container struct {
 	Namespace string
 	ID        string
 	Remote    string
@@ -33,8 +33,8 @@ type Instance struct {
 	sync.Mutex
 }
 
-func NewInstance(namespace, id, remote string) *Instance {
-	return &Instance{
+func NewContainer(namespace, id, remote string) *Container {
+	return &Container{
 		Namespace: namespace,
 		ID:        id,
 		Remote:    remote,
@@ -42,11 +42,11 @@ func NewInstance(namespace, id, remote string) *Instance {
 	}
 }
 
-func (i *Instance) Create(client *containerd.Client) error {
-	i.Lock()
-	defer i.Unlock()
-	ctx := i.context()
-	image, err := client.Pull(ctx, i.Remote, containerd.WithPullUnpack)
+func (c *Container) Create(client *containerd.Client) error {
+	c.Lock()
+	defer c.Unlock()
+	ctx := c.context()
+	image, err := client.Pull(ctx, c.Remote, containerd.WithPullUnpack)
 	if err != nil {
 		return errors.Wrap(err, "Error pulling image")
 	}
@@ -54,108 +54,108 @@ func (i *Instance) Create(client *containerd.Client) error {
 	withHostNamespace := containerd.WithHostNamespace(specs.NetworkNamespace)
 	container, err := client.NewContainer(
 		ctx,
-		i.ID,
+		c.ID,
 		containerd.WithImage(image),
-		containerd.WithNewSnapshot("snapshot-"+i.ID, image),
+		containerd.WithNewSnapshot("snapshot-"+c.ID, image),
 		containerd.WithNewSpec(imageConfig, withHostNamespace),
 	)
 	if err != nil {
 		return errors.Wrap(err, "Error creating new container")
 	}
-	i.State = Created
-	i.container = &container
+	c.State = Created
+	c.container = &container
 	return nil
 }
 
-func (i *Instance) Task() error {
-	i.Lock()
-	defer i.Unlock()
-	task, err := (*i.container).NewTask(i.context(), containerd.Stdio)
+func (c *Container) Task() error {
+	c.Lock()
+	defer c.Unlock()
+	task, err := (*c.container).NewTask(c.context(), containerd.Stdio)
 	if err != nil {
 		return errors.Wrap(err, "Error creating containerd task")
 	}
-	i.State = Tasked
-	i.task = &task
+	c.State = Tasked
+	c.task = &task
 	return nil
 }
 
-func (i *Instance) Start() (<-chan containerd.ExitStatus, error) {
-	i.Lock()
-	defer i.Unlock()
-	ctx := i.context()
-	exitStatusC, err := (*i.task).Wait(ctx)
+func (c *Container) Start() (<-chan containerd.ExitStatus, error) {
+	c.Lock()
+	defer c.Unlock()
+	ctx := c.context()
+	exitStatusC, err := (*c.task).Wait(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "Error waiting for containerd task")
 	}
-	err = (*i.task).Start(ctx)
+	err = (*c.task).Start(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "Error starting containerd task")
 	}
-	i.State = Started
+	c.State = Started
 	return exitStatusC, nil
 }
 
-func (i *Instance) Stop() error {
-	i.Lock()
-	defer i.Unlock()
-	ctx := i.context()
-	exitStatusC, err := (*i.task).Wait(ctx)
+func (c *Container) Stop() error {
+	c.Lock()
+	defer c.Unlock()
+	ctx := c.context()
+	exitStatusC, err := (*c.task).Wait(ctx)
 	if err != nil {
 		return errors.Wrap(err, "Error waiting for containerd task")
 	}
-	err = (*i.task).Kill(ctx, syscall.SIGTERM, containerd.WithKillAll)
+	err = (*c.task).Kill(ctx, syscall.SIGTERM, containerd.WithKillAll)
 	if err != nil {
 		return errors.Wrap(err, "Error SIGTERMing containerd task")
 	}
 	select {
 	case <-exitStatusC:
 	case <-time.After(5 * time.Second):
-		err = (*i.task).Kill(ctx, syscall.SIGKILL, containerd.WithKillAll)
+		err = (*c.task).Kill(ctx, syscall.SIGKILL, containerd.WithKillAll)
 		if err != nil {
 			return errors.Wrap(err, "Error SIGKILLing containerd task")
 		}
 		<-exitStatusC
 	}
-	i.State = Stopped
+	c.State = Stopped
 	return nil
 }
 
-func (i *Instance) Untask() error {
-	i.Lock()
-	defer i.Unlock()
-	_, err := (*i.task).Delete(i.context())
+func (c *Container) Untask() error {
+	c.Lock()
+	defer c.Unlock()
+	_, err := (*c.task).Delete(c.context())
 	if err != nil {
 		return errors.Wrap(err, "Error deleting containerd task")
 	}
-	i.State = Untasked
-	i.task = nil
+	c.State = Untasked
+	c.task = nil
 	return nil
 }
 
-func (i *Instance) Delete() error {
-	i.Lock()
-	defer i.Unlock()
-	err := (*i.container).Delete(i.context(), containerd.WithSnapshotCleanup)
+func (c *Container) Delete() error {
+	c.Lock()
+	defer c.Unlock()
+	err := (*c.container).Delete(c.context(), containerd.WithSnapshotCleanup)
 	if err != nil {
 		return errors.Wrap(err, "Error deleting container")
 	}
-	i.State = Deleted
-	i.container = nil
+	c.State = Deleted
+	c.container = nil
 	return nil
 }
 
-func (i *Instance) Status() State {
-	i.Lock()
-	defer i.Unlock()
-	if i.State == Started {
-		status, err := (*i.task).Status(i.context())
+func (c *Container) Status() State {
+	c.Lock()
+	defer c.Unlock()
+	if c.State == Started {
+		status, err := (*c.task).Status(c.context())
 		if err == nil && status.Status != containerd.Running {
-			i.State = Stopped
+			c.State = Stopped
 		}
 	}
-	return i.State
+	return c.State
 }
 
-func (i *Instance) context() context.Context {
-	return namespaces.WithNamespace(context.Background(), i.Namespace)
+func (c *Container) context() context.Context {
+	return namespaces.WithNamespace(context.Background(), c.Namespace)
 }
