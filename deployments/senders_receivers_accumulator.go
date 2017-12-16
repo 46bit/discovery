@@ -2,30 +2,14 @@ package main
 
 import (
 	"github.com/46bit/discovery/rainbow"
-	"github.com/46bit/discovery/rainbow/executor"
-	"github.com/46bit/discovery/rainbow/operator"
-	cd "github.com/containerd/containerd"
 	"log"
-	"math/rand"
 	"time"
 )
 
 func main() {
-	rand.Seed(time.Now().UnixNano())
+	client := rainbow.NewClient("http://localhost:8080")
 
-	client, err := cd.New("/run/containerd/containerd.sock")
-	if err != nil {
-		log.Fatalln(err)
-	}
-	defer client.Close()
-
-	exec := executor.NewExecutor(client)
-	go exec.Run()
-
-	op := operator.NewOperator(exec.CmdChan, exec.EventChan)
-	go op.Run()
-
-	serviceDiscovery := rainbow.Deployment{
+	serviceDiscovery, err := client.Create(rainbow.Deployment{
 		Name: "service-discovery",
 		Jobs: []rainbow.Job{
 			{
@@ -34,11 +18,13 @@ func main() {
 				InstanceCount: 1,
 			},
 		},
+	})
+	if err != nil {
+		log.Println(err)
 	}
-	op.Add(serviceDiscovery)
 	time.Sleep(5 * time.Second)
 
-	sendersReceiver := rainbow.Deployment{
+	sendersReceiver, err := client.Create(rainbow.Deployment{
 		Name: "senders-receivers-aggregator",
 		Jobs: []rainbow.Job{
 			{
@@ -57,13 +43,18 @@ func main() {
 				InstanceCount: 4,
 			},
 		},
+	})
+	if err != nil {
+		log.Println(err)
 	}
-	op.Add(sendersReceiver)
 	time.Sleep(time.Minute)
 
-	op.Remove(sendersReceiver.Name)
+	if err := client.Delete(sendersReceiver.Name); err != nil {
+		log.Println(err)
+	}
 	time.Sleep(10 * time.Second)
-
-	op.Remove(serviceDiscovery.Name)
+	if err := client.Delete(serviceDiscovery.Name); err != nil {
+		log.Println(err)
+	}
 	time.Sleep(5 * time.Second)
 }

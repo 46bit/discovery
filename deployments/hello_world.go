@@ -2,13 +2,12 @@ package main
 
 import (
 	"github.com/46bit/discovery/rainbow"
-	"github.com/46bit/discovery/rainbow/client"
 	"log"
 	"time"
 )
 
 func main() {
-	client := client.NewClient("http://localhost:8080")
+	client := rainbow.NewClient("http://localhost:8080")
 
 	helloWorld, err := client.Create(rainbow.Deployment{
 		Name: "hello-world",
