@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/46bit/discovery/rainbow/server"
+	"github.com/46bit/discovery/rainbow"
 	"github.com/containerd/containerd"
 	"log"
 	"math/rand"
@@ -17,6 +17,6 @@ func main() {
 	}
 	defer client.Close()
 
-	s := server.NewServer(client)
-	s.Run()
+	server := rainbow.NewServer(client)
+	server.Run("localhost:8080")
 }

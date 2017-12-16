@@ -1,10 +1,9 @@
-package client
+package rainbow
 
 import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/46bit/discovery/rainbow"
 	"io/ioutil"
 	"net/http"
 )
@@ -17,7 +16,7 @@ func NewClient(serverAddr string) *Client {
 	return &Client{serverAddr: serverAddr}
 }
 
-func (c *Client) List() ([]rainbow.Deployment, error) {
+func (c *Client) List() ([]Deployment, error) {
 	resp, err := http.Get(c.serverAddr + "/deployments")
 	if err != nil {
 		return nil, err
@@ -26,7 +25,7 @@ func (c *Client) List() ([]rainbow.Deployment, error) {
 	if err != nil {
 		return nil, err
 	}
-	var deployments []rainbow.Deployment
+	var deployments []Deployment
 	err = json.Unmarshal(responseBody, &deployments)
 	if err != nil {
 		return nil, err
@@ -34,7 +33,7 @@ func (c *Client) List() ([]rainbow.Deployment, error) {
 	return deployments, nil
 }
 
-func (c *Client) Create(deployment rainbow.Deployment) (*rainbow.Deployment, error) {
+func (c *Client) Create(deployment Deployment) (*Deployment, error) {
 	body, err := json.Marshal(deployment)
 	if err != nil {
 		return nil, err
@@ -47,7 +46,7 @@ func (c *Client) Create(deployment rainbow.Deployment) (*rainbow.Deployment, err
 	if err != nil {
 		return nil, err
 	}
-	var createdDeployment rainbow.Deployment
+	var createdDeployment Deployment
 	err = json.Unmarshal(responseBody, &createdDeployment)
 	if err != nil {
 		return nil, err
@@ -55,7 +54,7 @@ func (c *Client) Create(deployment rainbow.Deployment) (*rainbow.Deployment, err
 	return &createdDeployment, nil
 }
 
-func (c *Client) Get(deploymentName string) (*rainbow.Deployment, error) {
+func (c *Client) Get(deploymentName string) (*Deployment, error) {
 	resp, err := http.Get(c.serverAddr + "/deployments/" + deploymentName)
 	if err != nil {
 		return nil, err
@@ -64,7 +63,7 @@ func (c *Client) Get(deploymentName string) (*rainbow.Deployment, error) {
 	if err != nil {
 		return nil, err
 	}
-	var deployment rainbow.Deployment
+	var deployment Deployment
 	err = json.Unmarshal(responseBody, &deployment)
 	if err != nil {
 		return nil, err

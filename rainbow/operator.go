@@ -1,7 +1,6 @@
-package operator
+package rainbow
 
 import (
-	"github.com/46bit/discovery/rainbow"
 	"github.com/46bit/discovery/rainbow/executor"
 	"github.com/46bit/discovery/rainbow/instance"
 	"github.com/davecgh/go-spew/spew"
@@ -16,7 +15,7 @@ const (
 type Operator struct {
 	CmdChan       chan<- executor.Cmd
 	EventChan     <-chan executor.Event
-	Deployments   map[string]rainbow.Deployment
+	Deployments   map[string]Deployment
 	instancesInfo map[string]instanceInfo
 }
 
@@ -29,7 +28,7 @@ func NewOperator(cmdChan chan<- executor.Cmd, eventChan <-chan executor.Event) *
 	return &Operator{
 		CmdChan:       cmdChan,
 		EventChan:     eventChan,
-		Deployments:   map[string]rainbow.Deployment{},
+		Deployments:   map[string]Deployment{},
 		instancesInfo: map[string]instanceInfo{},
 	}
 }
@@ -61,7 +60,7 @@ func (o *Operator) Run() {
 	}
 }
 
-func (o *Operator) Add(deployment rainbow.Deployment) {
+func (o *Operator) Add(deployment Deployment) {
 	o.Deployments[deployment.Name] = deployment
 	for _, i := range deployment.Instances() {
 		o.CmdChan <- executor.NewExecuteCmd(namespace, i.ID(), i.Remote)
