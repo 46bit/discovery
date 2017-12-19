@@ -3,9 +3,9 @@ package rainbow
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 )
 
 type Client struct {
@@ -16,8 +16,8 @@ func NewClient(serverAddr string) *Client {
 	return &Client{serverAddr: serverAddr}
 }
 
-func (c *Client) List() ([]Deployment, error) {
-	resp, err := http.Get(c.serverAddr + "/deployments")
+func (c *Client) ListDeployments() ([]Deployment, error) {
+	resp, err := httpClient().Get(c.serverAddr + "/deployments")
 	if err != nil {
 		return nil, err
 	}
@@ -33,29 +33,20 @@ func (c *Client) List() ([]Deployment, error) {
 	return deployments, nil
 }
 
-func (c *Client) Create(deployment Deployment) (*Deployment, error) {
+func (c *Client) CreateDeployment(deployment Deployment) error {
 	body, err := json.Marshal(deployment)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	resp, err := http.Post(c.serverAddr+"/deployments", "application/json", bytes.NewReader(body))
+	_, err = httpClient().Post(c.serverAddr+"/deployments", "application/json", bytes.NewReader(body))
 	if err != nil {
-		return nil, err
+		return err
 	}
-	responseBody, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-	var createdDeployment Deployment
-	err = json.Unmarshal(responseBody, &createdDeployment)
-	if err != nil {
-		return nil, err
-	}
-	return &createdDeployment, nil
+	return nil
 }
 
-func (c *Client) Get(deploymentName string) (*Deployment, error) {
-	resp, err := http.Get(c.serverAddr + "/deployments/" + deploymentName)
+func (c *Client) GetDeployment(name string) (*Deployment, error) {
+	resp, err := httpClient().Get(c.serverAddr + "/deployments/" + url.PathEscape(name))
 	if err != nil {
 		return nil, err
 	}
@@ -71,6 +62,19 @@ func (c *Client) Get(deploymentName string) (*Deployment, error) {
 	return &deployment, nil
 }
 
-func (c *Client) Delete(deploymentName string) error {
-	return fmt.Errorf("DELETE NOT YET IMPLEMENTED")
+func (c *Client) DeleteDeployment(name string) error {
+	req, err := http.NewRequest("DELETE", c.serverAddr+"/deployments/"+url.PathEscape(name), nil)
+	if err != nil {
+		return err
+	}
+	_, err = httpClient().Do(req)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// @TODO: https://medium.com/@nate510/don-t-use-go-s-default-http-client-4804cb19f779
+func httpClient() *http.Client {
+	return &http.Client{}
 }

@@ -3,7 +3,9 @@ package container
 import (
 	"context"
 	"github.com/containerd/containerd"
+	"github.com/containerd/containerd/cio"
 	"github.com/containerd/containerd/namespaces"
+	"github.com/containerd/containerd/oci"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"sync"
@@ -52,14 +54,12 @@ func (c *Container) Create(client *containerd.Client) error {
 	if err != nil {
 		return errors.Wrap(err, "Error pulling image")
 	}
-	imageConfig := containerd.WithImageConfig(image)
-	withHostNamespace := containerd.WithHostNamespace(specs.NetworkNamespace)
 	container, err := client.NewContainer(
 		ctx,
 		c.ID,
 		containerd.WithImage(image),
 		containerd.WithNewSnapshot("snapshot-"+c.ID, image),
-		containerd.WithNewSpec(imageConfig, withHostNamespace),
+		containerd.WithNewSpec(oci.WithImageConfig(image), oci.WithHostNamespace(specs.NetworkNamespace)),
 	)
 	if err != nil {
 		return errors.Wrap(err, "Error creating new container")
@@ -72,7 +72,7 @@ func (c *Container) Create(client *containerd.Client) error {
 func (c *Container) Task() error {
 	c.Lock()
 	defer c.Unlock()
-	task, err := (*c.container).NewTask(c.context(), containerd.Stdio)
+	task, err := (*c.container).NewTask(c.context(), cio.Stdio)
 	if err != nil {
 		return errors.Wrap(err, "Error creating containerd task")
 	}

@@ -7,9 +7,9 @@ import (
 )
 
 func main() {
-	client := rainbow.NewClient("http://localhost:8080")
+	client := rainbow.NewClient("http://localhost:4601")
 
-	serviceDiscovery, err := client.Create(rainbow.Deployment{
+	serviceDiscovery := rainbow.Deployment{
 		Name: "service-discovery",
 		Jobs: []rainbow.Job{
 			{
@@ -18,13 +18,13 @@ func main() {
 				InstanceCount: 1,
 			},
 		},
-	})
-	if err != nil {
+	}
+	if err := client.CreateDeployment(serviceDiscovery); err != nil {
 		log.Println(err)
 	}
 	time.Sleep(5 * time.Second)
 
-	sendersReceiver, err := client.Create(rainbow.Deployment{
+	sendersReceiver := rainbow.Deployment{
 		Name: "senders-receivers-aggregator",
 		Jobs: []rainbow.Job{
 			{
@@ -43,17 +43,17 @@ func main() {
 				InstanceCount: 4,
 			},
 		},
-	})
-	if err != nil {
+	}
+	if err := client.CreateDeployment(sendersReceiver); err != nil {
 		log.Println(err)
 	}
 	time.Sleep(time.Minute)
 
-	if err := client.Delete(sendersReceiver.Name); err != nil {
+	if err := client.DeleteDeployment(sendersReceiver.Name); err != nil {
 		log.Println(err)
 	}
 	time.Sleep(10 * time.Second)
-	if err := client.Delete(serviceDiscovery.Name); err != nil {
+	if err := client.DeleteDeployment(serviceDiscovery.Name); err != nil {
 		log.Println(err)
 	}
 	time.Sleep(5 * time.Second)

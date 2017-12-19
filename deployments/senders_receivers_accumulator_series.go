@@ -8,9 +8,9 @@ import (
 )
 
 func main() {
-	client := rainbow.NewClient("http://localhost:8080")
+	client := rainbow.NewClient("http://localhost:4601")
 
-	serviceDiscovery, err := client.Create(rainbow.Deployment{
+	serviceDiscovery := rainbow.Deployment{
 		Name: "service-discovery",
 		Jobs: []rainbow.Job{
 			{
@@ -19,8 +19,8 @@ func main() {
 				InstanceCount: 1,
 			},
 		},
-	})
-	if err != nil {
+	}
+	if err := client.CreateDeployment(serviceDiscovery); err != nil {
 		log.Println(err)
 	}
 	time.Sleep(5 * time.Second)
@@ -29,7 +29,7 @@ func main() {
 		for j := uint(1); j <= 7; j++ {
 			log.Printf("------\nSENDERS-RECEIVER SET WITH %d, %d\n------\n", i, j)
 
-			sendersReceiver, err := client.Create(rainbow.Deployment{
+			sendersReceiver := rainbow.Deployment{
 				Name: fmt.Sprintf("senders-receiver-i%d-j%d", i, j),
 				Jobs: []rainbow.Job{
 					{
@@ -48,21 +48,21 @@ func main() {
 						InstanceCount: i * j,
 					},
 				},
-			})
-			if err != nil {
+			}
+			if err := client.CreateDeployment(sendersReceiver); err != nil {
 				log.Println(err)
 			}
 			time.Sleep(time.Duration(int64(i)) * time.Minute)
 
 			log.Printf("------\n")
-			if err := client.Delete(sendersReceiver.Name); err != nil {
+			if err := client.DeleteDeployment(sendersReceiver.Name); err != nil {
 				log.Println(err)
 			}
 			time.Sleep(30 * time.Second)
 		}
 	}
 
-	if err := client.Delete(serviceDiscovery.Name); err != nil {
+	if err := client.DeleteDeployment(serviceDiscovery.Name); err != nil {
 		log.Println(err)
 	}
 	time.Sleep(5 * time.Second)

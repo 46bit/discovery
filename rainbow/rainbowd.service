@@ -1,0 +1,8 @@
+[Unit]
+Description=Rainbow Daemon
+Documentation=http://github.com/46bit/discovery
+After=network.target containerd.service
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/rainbowd

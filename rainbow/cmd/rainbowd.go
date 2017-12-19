@@ -11,12 +11,13 @@ import (
 func main() {
 	rand.Seed(time.Now().UnixNano())
 
-	client, err := containerd.New("/run/containerd/containerd.sock")
+	client, err := containerd.New("//run/containerd/containerd.sock")
 	if err != nil {
 		log.Fatalln(err)
 	}
 	defer client.Close()
+	log.Println("Connected to containerd")
 
 	server := rainbow.NewServer(client)
-	server.Run("localhost:8080")
+	server.Run("localhost:4601")
 }

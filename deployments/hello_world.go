@@ -7,9 +7,9 @@ import (
 )
 
 func main() {
-	client := rainbow.NewClient("http://localhost:8080")
+	client := rainbow.NewClient("http://localhost:4601")
 
-	helloWorld, err := client.Create(rainbow.Deployment{
+	helloWorld := rainbow.Deployment{
 		Name: "hello-world",
 		Jobs: []rainbow.Job{
 			{
@@ -18,13 +18,13 @@ func main() {
 				InstanceCount: 1,
 			},
 		},
-	})
-	if err != nil {
+	}
+	if err := client.CreateDeployment(helloWorld); err != nil {
 		log.Println(err)
 	}
 	time.Sleep(time.Minute)
 
-	if err := client.Delete(helloWorld.Name); err != nil {
+	if err := client.DeleteDeployment(helloWorld.Name); err != nil {
 		log.Println(err)
 	}
 	time.Sleep(10 * time.Second)
